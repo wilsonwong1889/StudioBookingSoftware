@@ -27,7 +27,12 @@ from app.schemas.booking import (
     RefundCreate,
 )
 from app.staffing import normalize_staff_roles, resolve_staff_assignments, staff_add_on_total_cents
-from app.services.payment_service import create_payment_intent, create_refund, get_payment_intent_session
+from app.services.payment_service import (
+    PaymentBackendError,
+    create_payment_intent,
+    create_refund,
+    get_payment_intent_session,
+)
 from app.services.reservation_service import ReservationHold, create_hold, release_hold, validate_hold
 
 
@@ -419,6 +424,9 @@ def _create_booking_record(
     except IntegrityError as exc:
         db.rollback()
         raise BookingConflictError("Selected time is no longer available") from exc
+    except PaymentBackendError:
+        db.rollback()
+        raise
     finally:
         if reservation_token:
             release_hold(slot_keys, reservation_token)

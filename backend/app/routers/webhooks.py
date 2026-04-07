@@ -7,7 +7,7 @@ from fastapi import APIRouter, Header, HTTPException, Request
 import stripe
 from stripe.error import SignatureVerificationError
 
-from app.config import settings
+from app.config import get_stripe_configuration_status, redact_sensitive_text, settings
 from app.tasks import process_webhook_event_task
 
 
@@ -16,6 +16,12 @@ router = APIRouter(prefix="/api/webhooks", tags=["Webhooks"])
 
 def verify_signature(payload: bytes, signature_header: str) -> None:
     if settings.PAYMENT_BACKEND == "stripe":
+        stripe_status = get_stripe_configuration_status()
+        if not stripe_status["stripe_webhooks_ready"]:
+            raise HTTPException(
+                status_code=503,
+                detail="Stripe webhooks are not configured. Set a real STRIPE_WEBHOOK_SECRET.",
+            )
         try:
             stripe.Webhook.construct_event(
                 payload=payload,
@@ -27,7 +33,7 @@ def verify_signature(payload: bytes, signature_header: str) -> None:
         except SignatureVerificationError:
             raise
         except Exception as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+            raise HTTPException(status_code=400, detail=redact_sensitive_text(str(exc))) from exc
 
     if not signature_header:
         raise HTTPException(status_code=400, detail="Missing Stripe-Signature header")
@@ -68,7 +74,7 @@ async def stripe_webhook(
     try:
         verify_signature(payload, stripe_signature)
     except SignatureVerificationError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=redact_sensitive_text(str(exc))) from exc
 
     event = json.loads(payload.decode("utf-8"))
 

@@ -1,11 +1,28 @@
+import re
 from pathlib import Path
 from typing import Optional
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 PLACEHOLDER_MARKERS = ("change_me", "change-me", "placeholder", "example.com", "studio.local")
+SENSITIVE_SETTING_NAMES = (
+    "SECRET_KEY",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "SENDGRID_API_KEY",
+    "SMTP_PASSWORD",
+    "TWILIO_AUTH_TOKEN",
+    "SUITEDASH_SECRET_KEY",
+)
+SECRET_TOKEN_PATTERNS = (
+    re.compile(r"\bsk_(?:live|test)_[A-Za-z0-9]+\b"),
+    re.compile(r"\bpk_(?:live|test)_[A-Za-z0-9]+\b"),
+    re.compile(r"\bwhsec_[A-Za-z0-9]+\b"),
+    re.compile(r"\bSG\.[A-Za-z0-9._-]+\b"),
+)
 
 
 class RuntimeConfigurationError(RuntimeError):
@@ -14,7 +31,7 @@ class RuntimeConfigurationError(RuntimeError):
 
 class Settings(BaseSettings):
     DATABASE_URL: str
-    SECRET_KEY: str
+    SECRET_KEY: str = Field(repr=False)
     APP_ENV: str = "development"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
@@ -22,26 +39,39 @@ class Settings(BaseSettings):
     ALLOWED_CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
 
     STRIPE_PUBLISHABLE_KEY: str = ""
-    STRIPE_SECRET_KEY: str = "sk_test_placeholder"
-    STRIPE_WEBHOOK_SECRET: str = "whsec_placeholder"
+    STRIPE_SECRET_KEY: str = Field(default="sk_test_placeholder", repr=False)
+    STRIPE_WEBHOOK_SECRET: str = Field(default="whsec_placeholder", repr=False)
+    STRIPE_API_VERSION: str = "2026-02-25.clover"
     PAYMENT_BACKEND: str = "stub"
     STRIPE_WEBHOOK_TOLERANCE_SECONDS: int = 300
 
-    SENDGRID_API_KEY: str = "SG.placeholder"
+    SENDGRID_API_KEY: str = Field(default="SG.placeholder", repr=False)
     EMAIL_FROM: str = "noreply@yourstudio.com"
     EMAIL_REPLY_TO: str = ""
     EMAIL_BACKEND: str = "console"
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
     SMTP_USERNAME: str = ""
-    SMTP_PASSWORD: str = ""
+    SMTP_PASSWORD: str = Field(default="", repr=False)
     SMTP_USE_TLS: bool = True
     SMTP_TIMEOUT_SECONDS: int = 20
     SMS_BACKEND: str = "console"
     TWILIO_ACCOUNT_SID: str = ""
-    TWILIO_AUTH_TOKEN: str = ""
+    TWILIO_AUTH_TOKEN: str = Field(default="", repr=False)
     TWILIO_FROM_NUMBER: str = ""
     TWO_FACTOR_CODE_EXPIRE_MINUTES: int = 10
+    PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 30
+    SUITEDASH_ENABLED: bool = False
+    SUITEDASH_BASE_URL: str = "https://app.suitedash.com"
+    SUITEDASH_PUBLIC_ID: str = ""
+    SUITEDASH_SECRET_KEY: str = Field(default="", repr=False)
+    SUITEDASH_TIMEOUT_SECONDS: int = 20
+    SUITEDASH_CONTACT_META_PATH: str = "/contact/meta"
+    SUITEDASH_CONTACT_SYNC_PATH: str = "/contact"
+    SUITEDASH_CONTACT_SYNC_METHOD: str = "POST"
+    SUITEDASH_ROLE_ON_SIGNUP: str = "Lead"
+    SUITEDASH_ROLE_ON_BOOKING: str = "Prospect"
+    SUITEDASH_ROLE_ON_PAID_BOOKING: str = "Client"
 
     REDIS_URL: str = "redis://localhost:6379/0"
     RESERVATION_HOLD_MINUTES: int = 5
@@ -84,6 +114,51 @@ class Settings(BaseSettings):
 def _looks_placeholder(value: str) -> bool:
     lowered = value.lower()
     return any(marker in lowered for marker in PLACEHOLDER_MARKERS)
+
+
+def mask_secret(value: str, *, visible_prefix: int = 4, visible_suffix: int = 4) -> str:
+    if not value:
+        return ""
+    if len(value) <= visible_prefix + visible_suffix:
+        return "*" * len(value)
+    return f"{value[:visible_prefix]}...{value[-visible_suffix:]}"
+
+
+def redact_sensitive_text(value: str, settings_obj: Optional[Settings] = None) -> str:
+    current = settings_obj or settings
+    redacted = value
+    for pattern in SECRET_TOKEN_PATTERNS:
+        redacted = pattern.sub("[REDACTED]", redacted)
+    for setting_name in SENSITIVE_SETTING_NAMES:
+        secret_value = getattr(current, setting_name, "") or ""
+        if secret_value and secret_value in redacted:
+            redacted = redacted.replace(secret_value, mask_secret(secret_value))
+    return redacted
+
+
+def _is_configured(value: str) -> bool:
+    return bool(value.strip()) and not _looks_placeholder(value)
+
+
+def get_stripe_configuration_status(settings_obj: Optional[Settings] = None) -> dict[str, bool]:
+    current = settings_obj or settings
+    stripe_requested = current.PAYMENT_BACKEND == "stripe"
+    publishable_key_ready = _is_configured(current.STRIPE_PUBLISHABLE_KEY)
+    secret_key_ready = _is_configured(current.STRIPE_SECRET_KEY)
+    webhook_secret_ready = _is_configured(current.STRIPE_WEBHOOK_SECRET)
+    return {
+        "stripe_requested": stripe_requested,
+        "stripe_publishable_key_ready": publishable_key_ready,
+        "stripe_secret_key_ready": secret_key_ready,
+        "stripe_webhook_secret_ready": webhook_secret_ready,
+        "stripe_payments_ready": stripe_requested and secret_key_ready,
+        "stripe_checkout_ready": stripe_requested and publishable_key_ready and secret_key_ready,
+        "stripe_webhooks_ready": stripe_requested and webhook_secret_ready,
+        "stripe_fully_ready": stripe_requested
+        and publishable_key_ready
+        and secret_key_ready
+        and webhook_secret_ready,
+    }
 
 
 def validate_runtime_configuration(settings_obj: Optional[Settings] = None) -> None:

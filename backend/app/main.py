@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
-from app.config import settings, validate_runtime_configuration
+from app.config import get_stripe_configuration_status, settings, validate_runtime_configuration
 from app.database import engine
 from app.routers import admin, auth, bookings, rooms, staff, users, webhooks
 from app.monitoring import record_request, render_metrics, time_request
@@ -91,10 +91,14 @@ def metrics():
 
 @app.get("/api/public/config", include_in_schema=False)
 def public_config():
+    stripe_status = get_stripe_configuration_status()
     return {
         "app_env": settings.APP_ENV,
         "payment_backend": settings.PAYMENT_BACKEND,
-        "stripe_publishable_key": settings.STRIPE_PUBLISHABLE_KEY,
+        "stripe_publishable_key": settings.STRIPE_PUBLISHABLE_KEY if stripe_status["stripe_checkout_ready"] else None,
+        "stripe_checkout_ready": stripe_status["stripe_checkout_ready"],
+        "stripe_webhooks_ready": stripe_status["stripe_webhooks_ready"],
+        "stripe_fully_ready": stripe_status["stripe_fully_ready"],
         "app_base_url": settings.APP_BASE_URL,
         "default_currency": settings.DEFAULT_CURRENCY,
     }
@@ -117,4 +121,8 @@ def ready():
         redis.Redis.from_url(settings.REDIS_URL, decode_responses=True).ping()
         checks["redis"] = True
 
-    return {"status": "ready", "checks": checks}
+    stripe_status = get_stripe_configuration_status()
+    checks["stripe"] = True if not stripe_status["stripe_requested"] else stripe_status["stripe_fully_ready"]
+
+    status = "ready" if all(checks.values()) else "degraded"
+    return {"status": status, "checks": checks}

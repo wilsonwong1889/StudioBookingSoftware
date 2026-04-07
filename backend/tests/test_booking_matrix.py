@@ -3,6 +3,7 @@ import sys
 import time
 import unittest
 from datetime import date, datetime, timedelta, timezone
+from unittest.mock import patch
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
@@ -112,6 +113,7 @@ class BookingServiceMatrixTest(unittest.TestCase):
             serialize_admin_booking,
             validate_booking_window,
         )
+        from app.services.payment_service import PaymentConfigurationError
         from app.services import reservation_service
 
         reservation_service.redis = None
@@ -162,6 +164,7 @@ class BookingServiceMatrixTest(unittest.TestCase):
         cls.process_refund = staticmethod(process_refund)
         cls.serialize_admin_booking = staticmethod(serialize_admin_booking)
         cls.validate_booking_window = staticmethod(validate_booking_window)
+        cls.PaymentConfigurationError = PaymentConfigurationError
         cls.memory_holds = reservation_service._memory_holds
 
         cls.Base.metadata.create_all(bind=cls.engine)
@@ -640,6 +643,27 @@ class BookingServiceMatrixTest(unittest.TestCase):
 
             with self.assertRaises(self.PaymentSessionError):
                 self.get_booking_payment_session(db, booking, user)
+
+    def test_131b_create_booking_rolls_back_when_payment_setup_fails(self) -> None:
+        with self.SessionLocal() as db:
+            user = self._create_user(db)
+            room = self._create_room(db)
+            payload = self.BookingCreate(
+                room_id=room.id,
+                start_time=self._aware_time(day=6, hour=12),
+                duration_minutes=60,
+                staff_assignments=[],
+            )
+
+            with patch(
+                "app.services.booking_service.create_payment_intent",
+                side_effect=self.PaymentConfigurationError("Stripe checkout is not configured."),
+            ):
+                with self.assertRaises(self.PaymentConfigurationError):
+                    self.create_booking(db, user, payload)
+
+            self.assertEqual(db.query(self.Booking).count(), 0)
+            self.assertEqual(db.query(self.BookingSlot).count(), 0)
 
     def test_132_expire_pending_booking_cancels_and_releases_slots(self) -> None:
         with self.SessionLocal() as db:

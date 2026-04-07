@@ -32,6 +32,7 @@ from app.services.booking_service import (
     StaffSelectionError,
 )
 from app.config import settings
+from app.services.payment_service import PaymentBackendError
 
 
 router = APIRouter(prefix="/api", tags=["Bookings"])
@@ -83,6 +84,8 @@ def create_booking_endpoint(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except StaffAvailabilityError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except PaymentBackendError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except BookingConflictError as exc:
@@ -121,6 +124,8 @@ def get_my_booking_payment_session(
         raise HTTPException(status_code=404, detail="Booking not found")
     try:
         return get_booking_payment_session(db, booking, current_user)
+    except PaymentBackendError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     except PaymentSessionError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
