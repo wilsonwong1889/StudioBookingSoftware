@@ -25,6 +25,7 @@ from app.schemas.booking import (
     RefundOut,
 )
 from app.schemas.admin import AdminTestCaseOut
+from app.schemas.admin import AdminSuiteDashMetaOut, AdminSuiteDashStatusOut
 from app.schemas.staff import StaffPhotoUploadOut, StaffProfileCreate, StaffProfileOut, StaffProfileUpdate
 from app.schemas.user import AdminUserAccountOut
 from app.services.account_service import can_delete_admin_account, delete_user_account, list_accounts_for_admin
@@ -42,6 +43,7 @@ from app.services.booking_service import (
     clear_bookings_for_admin_day,
     clear_past_bookings_for_admin,
 )
+from app.services.payment_service import PaymentBackendError
 from app.services.staff_service import (
     create_staff_profile,
     delete_staff_profile,
@@ -49,6 +51,12 @@ from app.services.staff_service import (
     update_staff_profile,
 )
 from app.services.test_case_service import list_admin_test_cases
+from app.services.suitedash_service import (
+    SuiteDashConfigurationError,
+    SuiteDashRequestError,
+    fetch_suitedash_contact_meta,
+    get_suitedash_status,
+)
 
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
@@ -85,6 +93,27 @@ def admin_list_test_cases(
     _: None = Depends(admin_rate_limit),
 ):
     return list_admin_test_cases()
+
+
+@router.get("/integrations/suitedash/status", response_model=AdminSuiteDashStatusOut)
+def admin_suitedash_status(
+    admin: User = Depends(get_admin_user),
+    _: None = Depends(admin_rate_limit),
+):
+    return get_suitedash_status()
+
+
+@router.get("/integrations/suitedash/contact-meta", response_model=AdminSuiteDashMetaOut)
+def admin_suitedash_contact_meta(
+    admin: User = Depends(get_admin_user),
+    _: None = Depends(admin_rate_limit),
+):
+    try:
+        return {"data": fetch_suitedash_contact_meta()}
+    except SuiteDashConfigurationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except SuiteDashRequestError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 @router.delete("/users/{user_id}", status_code=204)
@@ -290,6 +319,8 @@ def admin_refund_booking(
 ):
     try:
         return process_refund(db, booking_id, admin, payload)
+    except PaymentBackendError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

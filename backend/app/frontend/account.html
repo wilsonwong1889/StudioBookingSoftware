@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Account | StudioBookingSoftware</title>
-    <link rel="stylesheet" href="/assets/styles/app.css?v=20260401z" />
+    <link rel="stylesheet" href="/assets/styles/app.css?v=20260401ab" />
   </head>
   <body data-page="account">
     <div class="site-frame">
@@ -64,17 +64,57 @@
             <button class="tab-button active" type="button" data-auth-tab="login">Log in</button>
             <button class="tab-button" type="button" data-auth-tab="signup">Create account</button>
           </div>
+          <div id="auth-feedback" class="auth-feedback hidden" role="status" aria-live="polite"></div>
 
           <form id="login-form" class="stack-form" data-auth-form="login">
             <label>
               <span>Email</span>
               <input type="email" name="email" autocomplete="username" required />
+              <span id="login-email-feedback" class="field-help auth-field-feedback hidden"></span>
             </label>
             <label>
               <span>Password</span>
               <input type="password" name="password" autocomplete="current-password" required />
+              <span id="login-password-feedback" class="field-help auth-field-feedback hidden"></span>
             </label>
             <button class="primary-button" type="submit">Log in</button>
+            <div class="auth-inline-row">
+              <button id="forgot-password-link" class="text-button" type="button">Forgot password?</button>
+              <span class="field-help">We can send a reset link to your email.</span>
+            </div>
+          </form>
+
+          <form id="forgot-password-form" class="stack-form hidden" data-auth-form="forgot-password">
+            <p class="form-note">
+              Enter the email on your account and we will send a secure password reset link.
+            </p>
+            <label>
+              <span>Email</span>
+              <input type="email" name="email" autocomplete="email" required />
+            </label>
+            <div class="auth-inline-row">
+              <button class="primary-button" type="submit">Send reset link</button>
+              <button id="forgot-password-back-button" class="ghost-button" type="button">Back to login</button>
+            </div>
+          </form>
+
+          <form id="reset-password-form" class="stack-form hidden" data-auth-form="reset-password">
+            <p class="form-note">
+              Choose a new password for your account. Reset links expire after 30 minutes.
+            </p>
+            <label>
+              <span>New password</span>
+              <input type="password" name="new_password" autocomplete="new-password" minlength="8" required />
+            </label>
+            <label>
+              <span>Confirm new password</span>
+              <input type="password" name="confirm_password" autocomplete="new-password" minlength="8" required />
+            </label>
+            <p id="reset-password-match-feedback" class="password-match-feedback hidden" aria-live="polite"></p>
+            <div class="auth-inline-row">
+              <button class="primary-button" type="submit">Save new password</button>
+              <button id="reset-password-back-button" class="ghost-button" type="button">Back to login</button>
+            </div>
           </form>
 
           <form id="login-2fa-form" class="stack-form hidden" data-auth-form="two-factor">
@@ -103,8 +143,13 @@
             </label>
             <label>
               <span>Password</span>
-              <input type="password" name="password" autocomplete="new-password" required />
+              <input type="password" name="password" autocomplete="new-password" minlength="8" required />
             </label>
+            <label>
+              <span>Confirm password</span>
+              <input type="password" name="confirm_password" autocomplete="new-password" minlength="8" required />
+            </label>
+            <p id="signup-password-match-feedback" class="password-match-feedback hidden" aria-live="polite"></p>
             <label>
               <span>Phone</span>
               <input type="tel" name="phone" autocomplete="tel" />
@@ -251,12 +296,17 @@
             <div class="profile-legend">Security</div>
             <label>
               <span>Current password</span>
-              <input type="password" name="current_password" autocomplete="current-password" />
+              <input type="password" name="current_password" autocomplete="current-password" required />
             </label>
             <label>
               <span>New password</span>
-              <input type="password" name="new_password" autocomplete="new-password" />
+              <input type="password" name="new_password" autocomplete="new-password" minlength="8" required />
             </label>
+            <label>
+              <span>Confirm new password</span>
+              <input type="password" name="confirm_password" autocomplete="new-password" minlength="8" required />
+            </label>
+            <p id="profile-password-match-feedback" class="password-match-feedback hidden" aria-live="polite"></p>
             <button class="ghost-button" type="submit">Change password</button>
           </form>
 
@@ -289,6 +339,6 @@
       </section>
     </div>
 
-    <script type="module" src="/assets/js/main.js?v=20260401y"></script>
+    <script type="module" src="/assets/js/main.js?v=20260401ab"></script>
   </body>
 </html>

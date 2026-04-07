@@ -14,9 +14,9 @@ def main() -> None:
     try:
         admin = ensure_admin_user(
             db,
-            email=os.environ.get("SEED_ADMIN_EMAIL", "adminstudiobipoc@gmail.com"),
-            password=os.environ.get("SEED_ADMIN_PASSWORD", "admin"),
-            full_name=os.environ.get("SEED_ADMIN_FULL_NAME", "BIPOC Foundation Admin"),
+            email=os.environ.get("SEED_ADMIN_EMAIL", "admin@example.com"),
+            password=os.environ.get("SEED_ADMIN_PASSWORD", "change-me-admin-password"),
+            full_name=os.environ.get("SEED_ADMIN_FULL_NAME", "Studio Admin"),
         )
         staff_profiles = ensure_staff_profiles(db)
         rooms = ensure_rooms(db)

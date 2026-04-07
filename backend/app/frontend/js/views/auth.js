@@ -1,62 +1,137 @@
 import { api } from "../api.js?v=20260401r";
 import { API_BASE_URL, getSearchParam } from "../config.js?v=20260401r";
-import { elements, toggleHidden } from "../dom.js?v=20260401r";
+import { elements, toggleHidden } from "../dom.js?v=20260401ab";
 import { persistToken, setState } from "../state.js?v=20260401r";
 
 let pendingTwoFactorToken = null;
 let pendingTwoFactorMethod = "email";
 
-function getLoginTwoFactorForm() {
-  return document.getElementById("login-2fa-form");
+function currentResetToken() {
+  return getSearchParam("reset_token");
 }
 
-function getLoginTwoFactorCopy() {
-  return document.getElementById("login-2fa-copy");
+function clearLoginFieldFeedback() {
+  if (elements.loginEmailFeedback) {
+    elements.loginEmailFeedback.textContent = "";
+    elements.loginEmailFeedback.classList.add("hidden");
+  }
+  if (elements.loginPasswordFeedback) {
+    elements.loginPasswordFeedback.textContent = "";
+    elements.loginPasswordFeedback.classList.add("hidden");
+  }
 }
 
-function getLoginTwoFactorResendButton() {
-  return document.getElementById("login-2fa-resend-button");
+function setLoginFieldFeedback(field, message) {
+  const target =
+    field === "password" ? elements.loginPasswordFeedback : elements.loginEmailFeedback;
+  if (!target) {
+    return;
+  }
+  target.textContent = message;
+  target.classList.remove("hidden");
 }
 
-function getLoginTwoFactorCancelButton() {
-  return document.getElementById("login-2fa-cancel-button");
+function hideAuthFeedback() {
+  if (!elements.authFeedback) {
+    return;
+  }
+  elements.authFeedback.textContent = "";
+  elements.authFeedback.classList.add("hidden");
+  elements.authFeedback.classList.remove("is-error", "is-success");
+}
+
+function showAuthFeedback(message, tone = "neutral") {
+  if (!elements.authFeedback) {
+    return;
+  }
+  elements.authFeedback.textContent = message;
+  elements.authFeedback.classList.remove("hidden", "is-error", "is-success");
+  elements.authFeedback.classList.toggle("is-error", tone === "error");
+  elements.authFeedback.classList.toggle("is-success", tone === "success");
+}
+
+function clearPasswordMatchFeedback(target) {
+  if (!target) {
+    return;
+  }
+  target.textContent = "";
+  target.classList.add("hidden");
+  target.classList.remove("is-match", "is-mismatch");
+}
+
+function updatePasswordMatchFeedback(target, passwordValue, confirmValue) {
+  if (!target) {
+    return true;
+  }
+  const password = String(passwordValue || "");
+  const confirm = String(confirmValue || "");
+
+  if (!password && !confirm) {
+    clearPasswordMatchFeedback(target);
+    return true;
+  }
+
+  target.classList.remove("hidden", "is-match", "is-mismatch");
+  if (password && confirm && password === confirm) {
+    target.textContent = "Passwords match.";
+    target.classList.add("is-match");
+    return true;
+  }
+
+  target.textContent = "Passwords do not match.";
+  target.classList.add("is-mismatch");
+  return false;
+}
+
+function setAuthMode(mode, { preserveFeedback = false } = {}) {
+  if (!preserveFeedback) {
+    hideAuthFeedback();
+  }
+  clearLoginFieldFeedback();
+  clearPasswordMatchFeedback(elements.signupPasswordMatchFeedback);
+  clearPasswordMatchFeedback(elements.resetPasswordMatchFeedback);
+
+  const loginFamilyModes = new Set([
+    "login",
+    "two-factor",
+    "forgot-password",
+    "reset-password",
+  ]);
+  const activeTab = loginFamilyModes.has(mode) ? "login" : "signup";
+
+  elements.authTabs.forEach((button) => {
+    button.classList.toggle("active", button.dataset.authTab === activeTab);
+  });
+
+  toggleHidden(elements.loginForm, mode !== "login");
+  toggleHidden(elements.login2faForm, mode !== "two-factor");
+  toggleHidden(elements.forgotPasswordForm, mode !== "forgot-password");
+  toggleHidden(elements.resetPasswordForm, mode !== "reset-password");
+  toggleHidden(elements.signupForm, mode !== "signup");
 }
 
 function activateTab(tab) {
-  if (!elements.loginForm || !elements.signupForm) {
-    return;
-  }
-  elements.authTabs.forEach((button) => {
-    button.classList.toggle("active", button.dataset.authTab === tab);
-  });
-  elements.loginForm.classList.toggle("hidden", tab !== "login");
-  elements.signupForm.classList.toggle("hidden", tab !== "signup");
-  getLoginTwoFactorForm()?.classList.add("hidden");
+  pendingTwoFactorToken = null;
+  pendingTwoFactorMethod = "email";
+  setAuthMode(tab === "signup" ? "signup" : "login");
 }
 
 function setTwoFactorStep(method) {
   pendingTwoFactorMethod = method || "email";
-  if (elements.loginForm) {
-    elements.loginForm.classList.add("hidden");
+  setAuthMode("two-factor");
+  if (elements.login2faForm) {
+    elements.login2faForm.reset();
   }
-  if (elements.signupForm) {
-    elements.signupForm.classList.add("hidden");
-  }
-  const twoFactorForm = getLoginTwoFactorForm();
-  if (twoFactorForm) {
-    twoFactorForm.reset();
-    twoFactorForm.classList.remove("hidden");
-  }
-  const copy = getLoginTwoFactorCopy();
-  if (copy) {
-    copy.textContent = `Enter the 6-digit verification code sent by ${pendingTwoFactorMethod === "sms" ? "SMS" : "email"}.`;
+  if (elements.login2faCopy) {
+    elements.login2faCopy.textContent = `Enter the 6-digit verification code sent by ${
+      pendingTwoFactorMethod === "sms" ? "SMS" : "email"
+    }.`;
   }
 }
 
 function clearTwoFactorStep() {
   pendingTwoFactorToken = null;
   pendingTwoFactorMethod = "email";
-  getLoginTwoFactorForm()?.classList.add("hidden");
 }
 
 async function requestJson(path, payload) {
@@ -68,11 +143,35 @@ async function requestJson(path, payload) {
     body: JSON.stringify(payload),
   });
 
-  const data = await response.json();
+  const contentType = response.headers.get("content-type") || "";
+  const data = contentType.includes("application/json")
+    ? await response.json()
+    : null;
+
   if (!response.ok) {
-    throw new Error(data?.detail || "Request failed");
+    const detail =
+      typeof data === "object" && data !== null && "detail" in data
+        ? data.detail
+        : "Request failed";
+    throw new Error(detail);
   }
   return data;
+}
+
+function applyLoginError(message) {
+  clearLoginFieldFeedback();
+  const normalizedMessage = String(message || "Log in failed.");
+  const lowered = normalizedMessage.toLowerCase();
+
+  if (lowered.includes("valid email")) {
+    setLoginFieldFeedback("email", "Enter a real email address to continue.");
+  } else if (lowered.includes("couldn't find an account")) {
+    setLoginFieldFeedback("email", "We could not find an account with that email.");
+  } else if (lowered.includes("wrong password")) {
+    setLoginFieldFeedback("password", "That password did not match the account.");
+  }
+
+  showAuthFeedback(normalizedMessage, "error");
 }
 
 export function initAuthView(actions) {
@@ -80,28 +179,58 @@ export function initAuthView(actions) {
     button.addEventListener("click", () => activateTab(button.dataset.authTab));
   });
 
-  if (getSearchParam("mode") === "signup") {
-    activateTab("signup");
+  const initialResetToken = currentResetToken();
+  if (initialResetToken) {
+    setAuthMode("reset-password");
+    showAuthFeedback("Choose a new password for your account.", "neutral");
+  } else if (getSearchParam("mode") === "signup") {
+    setAuthMode("signup");
+  } else {
+    setAuthMode("login");
   }
 
   if (elements.loginForm && elements.signupForm) {
+    const updateSignupPasswordMatch = () =>
+      updatePasswordMatchFeedback(
+        elements.signupPasswordMatchFeedback,
+        elements.signupForm?.elements.password?.value,
+        elements.signupForm?.elements.confirm_password?.value,
+      );
+    elements.signupForm.elements.password?.addEventListener("input", updateSignupPasswordMatch);
+    elements.signupForm.elements.confirm_password?.addEventListener("input", updateSignupPasswordMatch);
+
     elements.loginForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const form = new FormData(elements.loginForm);
+      clearLoginFieldFeedback();
+      hideAuthFeedback();
+
       try {
         setState({ message: "Logging in..." });
         const session = await api.login(form.get("email"), form.get("password"));
         if (session.two_factor_required) {
           pendingTwoFactorToken = session.two_factor_token;
           setTwoFactorStep(session.two_factor_method);
-          setState({ message: `Verification code sent by ${session.two_factor_method === "sms" ? "SMS" : "email"}.` });
+          showAuthFeedback(
+            `Verification code sent by ${
+              session.two_factor_method === "sms" ? "SMS" : "email"
+            }.`,
+            "success",
+          );
+          setState({
+            message: `Verification code sent by ${
+              session.two_factor_method === "sms" ? "SMS" : "email"
+            }.`,
+          });
           return;
         }
         persistToken(session.access_token);
         clearTwoFactorStep();
+        hideAuthFeedback();
         elements.loginForm.reset();
         await actions.refreshSession("Logged in successfully.");
       } catch (error) {
+        applyLoginError(error.message);
         setState({ message: error.message });
       }
     });
@@ -109,12 +238,24 @@ export function initAuthView(actions) {
     elements.signupForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const form = new FormData(elements.signupForm);
+      const password = String(form.get("password") || "");
+      const confirmPassword = String(form.get("confirm_password") || "");
+
+      if (!updateSignupPasswordMatch()) {
+        const message = "Passwords do not match yet.";
+        showAuthFeedback(message, "error");
+        setState({ message });
+        return;
+      }
+
       const payload = {
         email: form.get("email"),
-        password: form.get("password"),
+        password,
         full_name: form.get("full_name"),
         phone: form.get("phone") || null,
       };
+
+      hideAuthFeedback();
 
       try {
         setState({ message: "Creating account..." });
@@ -123,26 +264,125 @@ export function initAuthView(actions) {
         if (session.two_factor_required) {
           pendingTwoFactorToken = session.two_factor_token;
           setTwoFactorStep(session.two_factor_method);
-          setState({ message: `Account created. Verification code sent by ${session.two_factor_method === "sms" ? "SMS" : "email"}.` });
+          showAuthFeedback(
+            `Account created. Verification code sent by ${
+              session.two_factor_method === "sms" ? "SMS" : "email"
+            }.`,
+            "success",
+          );
+          setState({
+            message: `Account created. Verification code sent by ${
+              session.two_factor_method === "sms" ? "SMS" : "email"
+            }.`,
+          });
           return;
         }
         persistToken(session.access_token);
         clearTwoFactorStep();
+        hideAuthFeedback();
         elements.signupForm.reset();
+        clearPasswordMatchFeedback(elements.signupPasswordMatchFeedback);
         await actions.refreshSession("Account created.");
         activateTab("login");
       } catch (error) {
+        showAuthFeedback(error.message, "error");
         setState({ message: error.message });
       }
     });
   }
 
-  getLoginTwoFactorForm()?.addEventListener("submit", async (event) => {
+  elements.forgotPasswordLink?.addEventListener("click", () => {
+    clearTwoFactorStep();
+    setAuthMode("forgot-password");
+    showAuthFeedback("Enter your email and we will send a reset link.", "neutral");
+  });
+
+  elements.forgotPasswordBackButton?.addEventListener("click", () => {
+    setAuthMode("login");
+  });
+
+  elements.resetPasswordBackButton?.addEventListener("click", () => {
+    window.history.replaceState({}, "", "/account");
+    setAuthMode("login");
+  });
+
+  elements.forgotPasswordForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const form = new FormData(getLoginTwoFactorForm());
+    const form = new FormData(elements.forgotPasswordForm);
+    const email = String(form.get("email") || "").trim();
+
+    try {
+      setState({ message: "Sending password reset link..." });
+      const response = await requestJson("/api/auth/forgot-password", { email });
+      if (elements.loginForm?.email) {
+        elements.loginForm.email.value = email;
+      }
+      elements.forgotPasswordForm.reset();
+      setAuthMode("login", { preserveFeedback: true });
+      showAuthFeedback(response.message, "success");
+      setState({ message: response.message });
+    } catch (error) {
+      showAuthFeedback(error.message, "error");
+      setState({ message: error.message });
+    }
+  });
+
+  const updateResetPasswordMatch = () =>
+    updatePasswordMatchFeedback(
+      elements.resetPasswordMatchFeedback,
+      elements.resetPasswordForm?.elements.new_password?.value,
+      elements.resetPasswordForm?.elements.confirm_password?.value,
+    );
+  elements.resetPasswordForm?.elements.new_password?.addEventListener("input", updateResetPasswordMatch);
+  elements.resetPasswordForm?.elements.confirm_password?.addEventListener("input", updateResetPasswordMatch);
+
+  elements.resetPasswordForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const resetToken = currentResetToken();
+    const form = new FormData(elements.resetPasswordForm);
+    const newPassword = String(form.get("new_password") || "");
+    const confirmPassword = String(form.get("confirm_password") || "");
+
+    if (!resetToken) {
+      const message = "Password reset link is missing. Request a new one.";
+      showAuthFeedback(message, "error");
+      setState({ message });
+      return;
+    }
+
+    if (!updateResetPasswordMatch()) {
+      const message = "Passwords do not match yet.";
+      showAuthFeedback(message, "error");
+      setState({ message });
+      return;
+    }
+
+    try {
+      setState({ message: "Saving new password..." });
+      await requestJson("/api/auth/reset-password", {
+        reset_token: resetToken,
+        new_password: newPassword,
+      });
+      elements.resetPasswordForm.reset();
+      clearPasswordMatchFeedback(elements.resetPasswordMatchFeedback);
+      window.history.replaceState({}, "", "/account");
+      setAuthMode("login", { preserveFeedback: true });
+      showAuthFeedback("Password updated. You can log in now.", "success");
+      setState({ message: "Password updated. You can log in now." });
+    } catch (error) {
+      showAuthFeedback(error.message, "error");
+      setState({ message: error.message });
+    }
+  });
+
+  elements.login2faForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = new FormData(elements.login2faForm);
 
     if (!pendingTwoFactorToken) {
-      setState({ message: "Start login again to request a new verification code." });
+      const message = "Start login again to request a new verification code.";
+      showAuthFeedback(message, "error");
+      setState({ message });
       activateTab("login");
       return;
     }
@@ -155,16 +395,20 @@ export function initAuthView(actions) {
       });
       persistToken(session.access_token);
       clearTwoFactorStep();
+      hideAuthFeedback();
       elements.loginForm?.reset();
       await actions.refreshSession("Two-factor verification complete.");
     } catch (error) {
+      showAuthFeedback(error.message, "error");
       setState({ message: error.message });
     }
   });
 
-  getLoginTwoFactorResendButton()?.addEventListener("click", async () => {
+  elements.login2faResendButton?.addEventListener("click", async () => {
     if (!pendingTwoFactorToken) {
-      setState({ message: "Start login again to request a new verification code." });
+      const message = "Start login again to request a new verification code.";
+      showAuthFeedback(message, "error");
+      setState({ message });
       activateTab("login");
       return;
     }
@@ -176,20 +420,26 @@ export function initAuthView(actions) {
       });
       pendingTwoFactorToken = session.two_factor_token;
       setTwoFactorStep(session.two_factor_method);
-      setState({ message: `New verification code sent by ${session.two_factor_method === "sms" ? "SMS" : "email"}.` });
+      const message = `New verification code sent by ${
+        session.two_factor_method === "sms" ? "SMS" : "email"
+      }.`;
+      showAuthFeedback(message, "success");
+      setState({ message });
     } catch (error) {
+      showAuthFeedback(error.message, "error");
       setState({ message: error.message });
     }
   });
 
-  getLoginTwoFactorCancelButton()?.addEventListener("click", () => {
+  elements.login2faCancelButton?.addEventListener("click", () => {
     clearTwoFactorStep();
-    activateTab("login");
+    setAuthMode("login");
     setState({ message: "Two-factor sign-in cancelled." });
   });
 
   const handleLogout = async () => {
     clearTwoFactorStep();
+    hideAuthFeedback();
     persistToken(null);
     await actions.clearSession();
   };
@@ -206,6 +456,7 @@ export function renderAuthView(state) {
   const isSessionRestoring = Boolean(state.token && !state.currentUser);
   if (state.currentUser) {
     clearTwoFactorStep();
+    hideAuthFeedback();
   }
 
   if (elements.logoutButton) {

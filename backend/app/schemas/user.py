@@ -108,3 +108,12 @@ class TwoFactorVerifyIn(BaseModel):
 
 class TwoFactorResendIn(BaseModel):
     two_factor_token: str
+
+
+class PasswordResetRequestIn(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirmIn(BaseModel):
+    reset_token: str
+    new_password: str = Field(min_length=8, max_length=128)

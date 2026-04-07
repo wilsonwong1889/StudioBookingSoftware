@@ -81,15 +81,15 @@ These env vars control the seeded admin:
 - `SEED_ADMIN_FULL_NAME`
 
 Default seed values from [backend/.env.example](/Users/wilson/Desktop/StudioBookingSoftware/backend/.env.example):
-- email: `admin@studio.local`
-- password: `AdminPass123!`
+- email: `admin@example.com`
+- password: `change-me-admin-password`
 - full name: `Studio Admin`
 
 ## Admin Login
 
 If you use the default seed settings:
-- email: `adminstudiobipoc@gmail.com`
-- password: `admin`
+- email: `admin@example.com`
+- password: `change-me-admin-password`
 
 If you changed seed env vars, use those values instead.
 
@@ -128,11 +128,11 @@ You can also use Gmail SMTP instead of SendGrid:
 
 ```env
 EMAIL_BACKEND=smtp
-EMAIL_FROM=adminstudiobipoc@gmail.com
-EMAIL_REPLY_TO=adminstudiobipoc@gmail.com
+EMAIL_FROM=bookings@example.com
+EMAIL_REPLY_TO=support@example.com
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USERNAME=adminstudiobipoc@gmail.com
+SMTP_USERNAME=bookings@example.com
 SMTP_PASSWORD=your_gmail_app_password
 SMTP_USE_TLS=true
 ```

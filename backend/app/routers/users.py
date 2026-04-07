@@ -47,6 +47,9 @@ def update_profile(
         current_user.two_factor_code_expires_at = None
     db.commit()
     db.refresh(current_user)
+    from app.tasks import sync_suitedash_contact_task
+
+    sync_suitedash_contact_task.delay(str(current_user.id), "profile_update")
     return current_user
 
 
