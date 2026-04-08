@@ -117,7 +117,7 @@ class AuditLog(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     actor_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"))
-    booking_id = Column(UUID(as_uuid=True), ForeignKey("bookings.id", ondelete="CASCADE"))
+    booking_id = Column(UUID(as_uuid=True), ForeignKey("bookings.id", ondelete="SET NULL"))
     action = Column(String, nullable=False)
     details = Column(JSONB)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 from app.celery_app import task
 from app.config import settings
@@ -26,8 +27,16 @@ from app.services.notification_service import (
     booking_reminder_sms,
     login_verification_email,
     login_verification_sms,
+    password_reset_email,
     refund_processed_email,
     refund_processed_sms,
+)
+from app.services.suitedash_service import (
+    SuiteDashConfigurationError,
+    SuiteDashRequestError,
+    suitedash_is_configured,
+    suitedash_is_enabled,
+    sync_contact_to_suitedash,
 )
 
 
@@ -45,6 +54,55 @@ def _get_user(db, user_id: str):
     if not user_id:
         return None
     return db.query(User).filter(User.id == user_id).first()
+
+
+@task(name="app.tasks.sync_suitedash_contact")
+def sync_suitedash_contact_task(user_id: str, source: str, role: Optional[str] = None):
+    db = SessionLocal()
+    try:
+        user = _get_user(db, user_id)
+        if not user:
+            record_task_run("sync_suitedash_contact")
+            record_task_items("sync_suitedash_contact", "skipped", 1)
+            return {"synced": False, "reason": "user_not_found"}
+        if not suitedash_is_enabled():
+            record_task_run("sync_suitedash_contact")
+            record_task_items("sync_suitedash_contact", "skipped", 1)
+            return {"synced": False, "reason": "integration_disabled"}
+        if not suitedash_is_configured():
+            record_task_run("sync_suitedash_contact")
+            record_task_items("sync_suitedash_contact", "failed", 1)
+            return {"synced": False, "reason": "integration_not_configured"}
+
+        try:
+            delivery = sync_contact_to_suitedash(user, source=source, role=role)
+            create_notification_log(
+                db,
+                user_id=user.id,
+                booking_id=None,
+                notification_type=f"suitedash_contact_sync_{source}",
+                status="Sent",
+                details={"delivery": delivery},
+            )
+            db.commit()
+            record_task_run("sync_suitedash_contact")
+            record_task_items("sync_suitedash_contact", "sent", 1)
+            return {"synced": True}
+        except (SuiteDashConfigurationError, SuiteDashRequestError, ValueError) as exc:
+            create_notification_log(
+                db,
+                user_id=user.id,
+                booking_id=None,
+                notification_type=f"suitedash_contact_sync_{source}",
+                status="Failed",
+                details={"error": str(exc)},
+            )
+            db.commit()
+            record_task_run("sync_suitedash_contact")
+            record_task_items("sync_suitedash_contact", "failed", 1)
+            return {"synced": False, "error": str(exc)}
+    finally:
+        db.close()
 
 
 @task(name="app.tasks.process_webhook_event")
@@ -169,6 +227,40 @@ def send_login_verification_sms_task(user_id: str, code: str):
         db.commit()
         record_task_run("send_login_verification_sms")
         record_task_items("send_login_verification_sms", "sent", 1)
+        return {"sent": True}
+    finally:
+        db.close()
+
+
+@task(name="app.tasks.send_password_reset_email")
+def send_password_reset_email_task(user_id: str, reset_token: str):
+    db = SessionLocal()
+    try:
+        user = _get_user(db, user_id)
+        if not user or not user.email:
+            record_task_run("send_password_reset_email")
+            record_task_items("send_password_reset_email", "skipped", 1)
+            return {"sent": False}
+        reset_url = (
+            f"{settings.APP_BASE_URL.rstrip('/')}/account"
+            f"?mode=reset&reset_token={reset_token}"
+        )
+        delivery = password_reset_email(
+            to_email=user.email,
+            full_name=user.full_name,
+            reset_url=reset_url,
+        )
+        create_notification_log(
+            db,
+            user_id=user.id,
+            booking_id=None,
+            notification_type="password_reset_email_worker",
+            status="Sent",
+            details={"delivery": delivery},
+        )
+        db.commit()
+        record_task_run("send_password_reset_email")
+        record_task_items("send_password_reset_email", "sent", 1)
         return {"sent": True}
     finally:
         db.close()

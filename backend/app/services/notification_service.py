@@ -197,6 +197,28 @@ def login_verification_email(*, to_email: str, full_name: Optional[str], code: s
     )
 
 
+def password_reset_email(*, to_email: str, full_name: Optional[str], reset_url: str) -> dict:
+    greeting = full_name or to_email
+    return send_email(
+        to_email=to_email,
+        subject="Reset your StudioBookingSoftware password",
+        plain_text_content=(
+            f"Hi {greeting},\n"
+            "We received a request to reset your password.\n"
+            f"Use this secure link within {settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES} minutes:\n"
+            f"{reset_url}\n"
+            "If you did not request this change, you can ignore this email.\n"
+        ),
+        html_content=(
+            f"<p>Hi <strong>{greeting}</strong>,</p>"
+            "<p>We received a request to reset your password.</p>"
+            f"<p>Use this secure link within <strong>{settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES} minutes</strong>:</p>"
+            f'<p><a href="{reset_url}">{reset_url}</a></p>'
+            "<p>If you did not request this change, you can ignore this email.</p>"
+        ),
+    )
+
+
 def booking_created_email(*, to_email: str, booking_code: str, start_time: str, status: str) -> dict:
     return send_email(
         to_email=to_email,

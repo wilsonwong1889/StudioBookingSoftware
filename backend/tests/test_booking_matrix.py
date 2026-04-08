@@ -837,6 +837,50 @@ class BookingServiceMatrixTest(unittest.TestCase):
             self.assertIsNone(db.query(self.Booking).filter(self.Booking.id == past.id).first())
             self.assertIsNotNone(db.query(self.Booking).filter(self.Booking.id == future.id).first())
 
+    def test_138b_clear_bookings_for_admin_day_preserves_audit_history(self) -> None:
+        with self.SessionLocal() as db:
+            admin = self._create_user(db, email_prefix="admin", is_admin=True)
+            room = self._create_room(db)
+            manual_booking = self.create_manual_booking(
+                db,
+                admin,
+                self.ManualBookingCreate(
+                    user_email="walkin@example.com",
+                    full_name="Walk In",
+                    room_id=room.id,
+                    start_time=self._aware_time(day=8, hour=10),
+                    duration_minutes=60,
+                    note="Front desk override",
+                ),
+            )
+
+            result = self.clear_bookings_for_admin_day(db, admin, date(2026, 5, 8))
+
+            self.assertEqual(result["deleted_count"], 1)
+            db.expire_all()
+            audit_logs = (
+                db.query(self.AuditLog)
+                .filter(
+                    self.AuditLog.action.in_(
+                        ["manual_booking_created", "bulk_bookings_cleared_for_day"]
+                    )
+                )
+                .order_by(self.AuditLog.created_at.asc())
+                .all()
+            )
+
+            self.assertEqual(len(audit_logs), 2)
+            manual_audit = next(
+                audit_log for audit_log in audit_logs if audit_log.action == "manual_booking_created"
+            )
+            clear_audit = next(
+                audit_log for audit_log in audit_logs if audit_log.action == "bulk_bookings_cleared_for_day"
+            )
+            self.assertIsNone(manual_audit.booking_id)
+            self.assertIsNone(clear_audit.booking_id)
+            self.assertIn(str(manual_booking["id"]), clear_audit.details["booking_ids"])
+            self.assertEqual(clear_audit.details["deleted_count"], 1)
+
     def test_139_mark_booking_paid_sets_confirmed_at(self) -> None:
         with self.SessionLocal() as db:
             user = self._create_user(db)

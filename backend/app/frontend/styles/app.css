@@ -835,6 +835,28 @@ a {
   gap: 14px;
 }
 
+.auth-feedback {
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border: 1px solid rgba(24, 33, 39, 0.14);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.auth-feedback.is-error {
+  border-color: rgba(166, 61, 47, 0.34);
+  background: rgba(255, 239, 236, 0.9);
+  color: var(--danger);
+}
+
+.auth-feedback.is-success {
+  border-color: rgba(34, 120, 74, 0.28);
+  background: rgba(236, 250, 242, 0.9);
+  color: #1f6a43;
+}
+
 .profile-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: start;
@@ -851,6 +873,47 @@ a {
 .stack-form label {
   display: grid;
   gap: 8px;
+}
+
+.auth-field-feedback {
+  margin-top: -2px;
+  color: var(--danger);
+}
+
+.auth-inline-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.password-match-feedback {
+  margin: -4px 0 2px;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.password-match-feedback.is-match {
+  color: #1f6a43;
+}
+
+.password-match-feedback.is-mismatch {
+  color: var(--danger);
+}
+
+.text-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent-deep);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.text-button:hover {
+  text-decoration: underline;
 }
 
 .inline-field {

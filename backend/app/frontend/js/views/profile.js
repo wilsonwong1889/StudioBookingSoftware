@@ -1,6 +1,6 @@
 import { api } from "../api.js?v=20260401r";
 import { STORAGE_KEYS } from "../config.js?v=20260401r";
-import { elements, toggleHidden } from "../dom.js?v=20260401r";
+import { elements, toggleHidden } from "../dom.js?v=20260401ab";
 import { persistToken, setState } from "../state.js?v=20260401r";
 
 let draftSaveTimer = null;
@@ -171,6 +171,40 @@ function formatTimestamp(timestamp) {
   }).format(new Date(timestamp));
 }
 
+function clearPasswordMatchFeedback() {
+  if (!elements.profilePasswordMatchFeedback) {
+    return;
+  }
+  elements.profilePasswordMatchFeedback.textContent = "";
+  elements.profilePasswordMatchFeedback.classList.add("hidden");
+  elements.profilePasswordMatchFeedback.classList.remove("is-match", "is-mismatch");
+}
+
+function updatePasswordMatchFeedback() {
+  if (!elements.passwordForm || !elements.profilePasswordMatchFeedback) {
+    return true;
+  }
+
+  const password = String(elements.passwordForm.elements.new_password?.value || "");
+  const confirm = String(elements.passwordForm.elements.confirm_password?.value || "");
+
+  if (!password && !confirm) {
+    clearPasswordMatchFeedback();
+    return true;
+  }
+
+  elements.profilePasswordMatchFeedback.classList.remove("hidden", "is-match", "is-mismatch");
+  if (password && confirm && password === confirm) {
+    elements.profilePasswordMatchFeedback.textContent = "Passwords match.";
+    elements.profilePasswordMatchFeedback.classList.add("is-match");
+    return true;
+  }
+
+  elements.profilePasswordMatchFeedback.textContent = "Passwords do not match.";
+  elements.profilePasswordMatchFeedback.classList.add("is-mismatch");
+  return false;
+}
+
 function clearDraft({ keepMessage = false } = {}) {
   if (draftSaveTimer) {
     window.clearTimeout(draftSaveTimer);
@@ -321,6 +355,10 @@ export function initProfileView(actions) {
   elements.passwordForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const form = new FormData(elements.passwordForm);
+    if (!updatePasswordMatchFeedback()) {
+      setState({ message: "Passwords do not match yet." });
+      return;
+    }
     const payload = {
       current_password: form.get("current_password"),
       new_password: form.get("new_password"),
@@ -329,11 +367,15 @@ export function initProfileView(actions) {
     try {
       await api.updatePassword(payload);
       elements.passwordForm.reset();
+      clearPasswordMatchFeedback();
       setState({ message: "Password updated." });
     } catch (error) {
       setState({ message: error.message });
     }
   });
+
+  elements.passwordForm.elements.new_password?.addEventListener("input", updatePasswordMatchFeedback);
+  elements.passwordForm.elements.confirm_password?.addEventListener("input", updatePasswordMatchFeedback);
 
   elements.profileDeleteButton?.addEventListener("click", async () => {
     const confirmed = window.confirm(
@@ -387,6 +429,7 @@ export function renderProfileView(state) {
     if (!isSessionRestoring) {
       setSaveState("Account details are ready.", "You can save now or continue later.");
     }
+    clearPasswordMatchFeedback();
     return;
   }
 

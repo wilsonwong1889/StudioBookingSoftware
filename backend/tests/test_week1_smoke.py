@@ -173,8 +173,15 @@ class AppSmokeTest(unittest.TestCase):
         self.assertIn("Delete profile", account_page.text)
         self.assertIn("Require two-factor verification at login", account_page.text)
         self.assertIn("login-2fa-form", account_page.text)
+        self.assertIn("forgot-password-form", account_page.text)
+        self.assertIn("reset-password-form", account_page.text)
+        self.assertIn("Forgot password?", account_page.text)
+        self.assertIn("Confirm password", account_page.text)
+        self.assertIn("signup-password-match-feedback", account_page.text)
+        self.assertIn("reset-password-match-feedback", account_page.text)
+        self.assertIn("profile-password-match-feedback", account_page.text)
         self.assertIn("account-danger-zone", account_page.text)
-        self.assertIn("20260401y", account_page.text)
+        self.assertIn("20260401ab", account_page.text)
 
         bookings_page = self.client.get("/bookings")
         self.assertIn("Check availability", bookings_page.text)
@@ -217,8 +224,8 @@ class AppSmokeTest(unittest.TestCase):
         self.assertIn("views/room-booking.js?v=20260401u", response.text)
         self.assertIn("views/rooms.js?v=20260401r", response.text)
         self.assertIn("views/room-detail.js?v=20260401r", response.text)
-        self.assertIn("views/auth.js?v=20260401y", response.text)
-        self.assertIn("views/profile.js?v=20260401y", response.text)
+        self.assertIn("views/auth.js?v=20260401ab", response.text)
+        self.assertIn("views/profile.js?v=20260401ab", response.text)
         self.assertNotIn("views/admin.js?v=20260401r", response.text)
 
         response = self.client.get("/assets/js/views/bookings.js")
@@ -485,6 +492,81 @@ class AppSmokeTest(unittest.TestCase):
                 "two_factor_token": login_payload["two_factor_token"],
                 "code": code_match,
             },
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertTrue(response.json()["access_token"])
+
+    def test_16_login_feedback_and_password_reset_flow(self) -> None:
+        signup_payload = {
+            "email": "reset-user@example.com",
+            "password": "Password123!",
+            "full_name": "Reset User",
+            "phone": "5554443333",
+        }
+        response = self.client.post("/api/auth/signup", json=signup_payload)
+        self.assertEqual(response.status_code, 201, response.text)
+
+        response = self.client.post(
+            "/api/auth/login",
+            data={"username": "not-an-email", "password": signup_payload["password"]},
+        )
+        self.assertEqual(response.status_code, 400, response.text)
+        self.assertEqual(response.json()["detail"], "Enter a valid email address.")
+
+        response = self.client.post(
+            "/api/auth/login",
+            data={"username": "missing@example.com", "password": signup_payload["password"]},
+        )
+        self.assertEqual(response.status_code, 404, response.text)
+        self.assertEqual(response.json()["detail"], "We couldn't find an account with that email.")
+
+        response = self.client.post(
+            "/api/auth/login",
+            data={"username": signup_payload["email"], "password": "WrongPassword123!"},
+        )
+        self.assertEqual(response.status_code, 401, response.text)
+        self.assertEqual(response.json()["detail"], "Wrong password. Try again or reset it.")
+
+        response = self.client.post(
+            "/api/auth/forgot-password",
+            json={"email": signup_payload["email"]},
+        )
+        self.assertEqual(response.status_code, 202, response.text)
+        self.assertEqual(
+            response.json()["message"],
+            "If we found an account with that email, we sent a password reset link.",
+        )
+
+        with self.SessionLocal() as db:
+            notification = (
+                db.query(self.NotificationLog)
+                .filter(self.NotificationLog.type == "password_reset_email_worker")
+                .order_by(self.NotificationLog.created_at.desc())
+                .first()
+            )
+
+        self.assertIsNotNone(notification)
+        delivery_message = json.loads(notification.details["delivery"]["message"])
+        token_search = re.search(r"reset_token=([A-Za-z0-9._-]+)", delivery_message["body"])
+        token = token_search.group(1) if token_search else None
+        self.assertIsNotNone(token)
+
+        response = self.client.post(
+            "/api/auth/reset-password",
+            json={"reset_token": token, "new_password": "NewPassword123!"},
+        )
+        self.assertEqual(response.status_code, 204, response.text)
+
+        response = self.client.post(
+            "/api/auth/login",
+            data={"username": signup_payload["email"], "password": signup_payload["password"]},
+        )
+        self.assertEqual(response.status_code, 401, response.text)
+        self.assertEqual(response.json()["detail"], "Wrong password. Try again or reset it.")
+
+        response = self.client.post(
+            "/api/auth/login",
+            data={"username": signup_payload["email"], "password": "NewPassword123!"},
         )
         self.assertEqual(response.status_code, 200, response.text)
         self.assertTrue(response.json()["access_token"])
@@ -793,6 +875,16 @@ class AppSmokeTest(unittest.TestCase):
         self.assertTrue(any(item["title"] == "Payment confirmation end-to-end" for item in payload))
         self.assertTrue(any(item["title"] == "Runtime config rejects placeholder production secrets" for item in payload))
 
+        response = self.client.get("/api/admin/integrations/suitedash/status", headers=admin_headers)
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertFalse(response.json()["enabled"])
+        self.assertFalse(response.json()["configured"])
+        self.assertEqual(response.json()["contact_meta_path"], "/contact/meta")
+
+        response = self.client.get("/api/admin/integrations/suitedash/contact-meta", headers=admin_headers)
+        self.assertEqual(response.status_code, 400, response.text)
+        self.assertIn("SuiteDash integration is disabled", response.text)
+
     def test_30_week_five_six_flow(self) -> None:
         from app.config import settings
         from app.models.booking import Booking
@@ -846,12 +938,22 @@ class AppSmokeTest(unittest.TestCase):
         admin_headers = {"Authorization": f"Bearer {response.json()['access_token']}"}
 
         business_timezone = ZoneInfo("America/Edmonton")
+        pending_booking_date = datetime.now(business_timezone).date() + timedelta(days=3)
+        manual_booking_date = pending_booking_date + timedelta(days=1)
+        admin_self_booking_date = manual_booking_date + timedelta(days=1)
         response = self.client.post(
             "/api/bookings",
             headers=admin_headers,
             json={
                 "room_id": admin_room_id,
-                "start_time": datetime(2026, 4, 5, 10, 0, tzinfo=business_timezone).isoformat(),
+                "start_time": datetime(
+                    admin_self_booking_date.year,
+                    admin_self_booking_date.month,
+                    admin_self_booking_date.day,
+                    10,
+                    0,
+                    tzinfo=business_timezone,
+                ).isoformat(),
                 "duration_minutes": 60,
             },
         )
@@ -862,7 +964,14 @@ class AppSmokeTest(unittest.TestCase):
             headers=admin_headers,
             json={
                 "room_id": admin_room_id,
-                "start_time": datetime(2026, 4, 5, 11, 0, tzinfo=business_timezone).isoformat(),
+                "start_time": datetime(
+                    admin_self_booking_date.year,
+                    admin_self_booking_date.month,
+                    admin_self_booking_date.day,
+                    11,
+                    0,
+                    tzinfo=business_timezone,
+                ).isoformat(),
                 "duration_minutes": 60,
             },
         )
@@ -897,8 +1006,15 @@ class AppSmokeTest(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.text)
         self.assertTrue(response.json()["opt_in_sms"])
 
-        start_time = datetime(2026, 4, 3, 12, 0, tzinfo=business_timezone)
-        target_date = date(2026, 4, 3)
+        start_time = datetime(
+            pending_booking_date.year,
+            pending_booking_date.month,
+            pending_booking_date.day,
+            12,
+            0,
+            tzinfo=business_timezone,
+        )
+        target_date = pending_booking_date
 
         response = self.client.post(
             "/api/bookings",
@@ -979,7 +1095,14 @@ class AppSmokeTest(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual(response.json()[0]["status"], "Refunded")
 
-        manual_start_time = datetime(2026, 4, 4, 14, 0, tzinfo=business_timezone)
+        manual_start_time = datetime(
+            manual_booking_date.year,
+            manual_booking_date.month,
+            manual_booking_date.day,
+            14,
+            0,
+            tzinfo=business_timezone,
+        )
         response = self.client.post(
             "/api/admin/bookings/manual",
             headers=admin_headers,
@@ -1004,7 +1127,14 @@ class AppSmokeTest(unittest.TestCase):
                 "user_email": "walkin@example.com",
                 "full_name": "Walk In",
                 "room_id": room_id,
-                "start_time": datetime(2026, 4, 4, 15, 0, tzinfo=business_timezone).isoformat(),
+                "start_time": datetime(
+                    manual_booking_date.year,
+                    manual_booking_date.month,
+                    manual_booking_date.day,
+                    15,
+                    0,
+                    tzinfo=business_timezone,
+                ).isoformat(),
                 "duration_minutes": 60,
                 "note": "Same day admin override",
             },
@@ -1070,11 +1200,11 @@ class AppSmokeTest(unittest.TestCase):
         response = self.client.post(
             "/api/admin/bookings/clear-day",
             headers=admin_headers,
-            json={"date": "2026-04-04"},
+            json={"date": manual_booking_date.isoformat()},
         )
         self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual(response.json()["scope"], "day")
-        self.assertEqual(response.json()["target_date"], "2026-04-04")
+        self.assertEqual(response.json()["target_date"], manual_booking_date.isoformat())
         self.assertGreaterEqual(response.json()["deleted_count"], 1)
 
         response = self.client.get("/api/admin/bookings?email=walkin@example.com", headers=admin_headers)

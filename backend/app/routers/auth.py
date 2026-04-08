@@ -5,6 +5,7 @@ from secrets import randbelow
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import EmailStr, TypeAdapter, ValidationError
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -13,16 +14,33 @@ from app.core.rate_limit import rate_limit_dependency
 from app.core.security import create_access_token, decode_token, hash_password, verify_password
 from app.database import get_db
 from app.models.user import User
-from app.schemas.user import Token, TwoFactorResendIn, TwoFactorVerifyIn, UserCreate, UserOut
+from app.schemas.user import (
+    PasswordResetConfirmIn,
+    PasswordResetRequestIn,
+    Token,
+    TwoFactorResendIn,
+    TwoFactorVerifyIn,
+    UserCreate,
+    UserOut,
+)
 from app.services.booking_service import create_notification_log
 
 
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
 auth_rate_limit = rate_limit_dependency("auth", settings.AUTH_RATE_LIMIT_MAX_REQUESTS)
+email_adapter = TypeAdapter(EmailStr)
 
 
 def _generate_two_factor_code() -> str:
     return f"{randbelow(1_000_000):06d}"
+
+
+def _validate_email_address(email: str) -> str:
+    try:
+        normalized = email_adapter.validate_python((email or "").strip())
+    except ValidationError as exc:
+        raise HTTPException(status_code=400, detail="Enter a valid email address.") from exc
+    return str(normalized)
 
 
 def _normalize_two_factor_method(user: User) -> str:
@@ -115,6 +133,21 @@ def _verify_two_factor_token(db: Session, payload: TwoFactorVerifyIn) -> User:
     return user
 
 
+def _verify_password_reset_token(db: Session, reset_token: str) -> User:
+    try:
+        token_payload = decode_token(reset_token)
+    except Exception as exc:  # pragma: no cover - jose raises multiple subclasses
+        raise HTTPException(status_code=401, detail="Password reset link expired. Request a new one.") from exc
+
+    if token_payload.get("purpose") != "password_reset":
+        raise HTTPException(status_code=401, detail="Invalid password reset link")
+
+    user = db.query(User).filter(User.id == token_payload.get("sub")).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="We couldn't find an account for that reset link.")
+    return user
+
+
 @router.post("/signup", response_model=UserOut, status_code=201)
 def signup(
     payload: UserCreate,
@@ -151,10 +184,12 @@ def signup(
     from app.tasks import (
         send_account_created_email_task,
         send_account_created_sms_task,
+        sync_suitedash_contact_task,
     )
 
     send_account_created_email_task.delay(str(user.id))
     send_account_created_sms_task.delay(str(user.id))
+    sync_suitedash_contact_task.delay(str(user.id), "signup")
     return user
 
 
@@ -164,15 +199,70 @@ def login(
     db: Session = Depends(get_db),
     _: None = Depends(auth_rate_limit),
 ):
-    user = db.query(User).filter(User.email == form_data.username).first()
-    if not user or not verify_password(form_data.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+    email = _validate_email_address(form_data.username)
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="We couldn't find an account with that email.")
+    if not verify_password(form_data.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Wrong password. Try again or reset it.")
 
     if user.two_factor_enabled:
         return _create_two_factor_challenge(db, user)
 
     token = create_access_token({"sub": str(user.id)})
     return Token(access_token=token, token_type="bearer")
+
+
+@router.post("/forgot-password", status_code=202)
+def forgot_password(
+    payload: PasswordResetRequestIn,
+    db: Session = Depends(get_db),
+    _: None = Depends(auth_rate_limit),
+):
+    user = db.query(User).filter(User.email == payload.email).first()
+    if user and user.email:
+        reset_token = create_access_token(
+            {"sub": str(user.id), "purpose": "password_reset"},
+            expires_minutes=settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES,
+        )
+        create_notification_log(
+            db,
+            user_id=user.id,
+            booking_id=None,
+            notification_type="password_reset_requested",
+            status="Queued",
+            details={
+                "queued_tasks": ["send_password_reset_email"],
+                "expires_in_minutes": settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES,
+            },
+        )
+        db.commit()
+
+        from app.tasks import send_password_reset_email_task
+
+        send_password_reset_email_task.delay(str(user.id), reset_token)
+
+    return {
+        "message": (
+            "If we found an account with that email, we sent a password reset link."
+        )
+    }
+
+
+@router.post("/reset-password", status_code=204)
+def reset_password(
+    payload: PasswordResetConfirmIn,
+    db: Session = Depends(get_db),
+    _: None = Depends(auth_rate_limit),
+):
+    user = _verify_password_reset_token(db, payload.reset_token)
+    if verify_password(payload.new_password, user.password_hash):
+        raise HTTPException(status_code=400, detail="Choose a new password that is different from the current one.")
+
+    user.password_hash = hash_password(payload.new_password)
+    user.two_factor_code_hash = None
+    user.two_factor_code_expires_at = None
+    db.commit()
 
 
 @router.post("/verify-2fa", response_model=Token)

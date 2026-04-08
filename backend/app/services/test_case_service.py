@@ -209,6 +209,24 @@ TEST_CASE_CATALOG = [
         ],
     },
     {
+        "id": "suitedash-service-scaffolding",
+        "title": "SuiteDash service scaffolding and admin integration status",
+        "area": "Integrations",
+        "health": "working",
+        "status": "Automated",
+        "summary": "Covers SuiteDash status/config helpers, contact meta request wiring, and admin-only integration status endpoints.",
+        "source_file": "backend/tests/test_suitedash_service.py",
+        "source_test": "SuiteDashServiceTest",
+        "commands": [
+            "venv/bin/python -m unittest tests.test_suitedash_service",
+        ],
+        "covered_paths": [
+            "SuiteDash status helpers",
+            "/api/admin/integrations/suitedash/status",
+            "/api/admin/integrations/suitedash/contact-meta",
+        ],
+    },
+    {
         "id": "booking-schema-validation-matrix",
         "title": "Booking schema validation matrix",
         "area": "Bookings",
