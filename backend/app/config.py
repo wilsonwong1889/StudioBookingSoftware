@@ -173,20 +173,21 @@ def validate_runtime_configuration(settings_obj: Optional[Settings] = None) -> N
         errors.append("SECRET_KEY must be a strong non-placeholder value in production")
     if not current.APP_BASE_URL.startswith("https://"):
         errors.append("APP_BASE_URL must use https in production")
-    if current.PAYMENT_BACKEND != "stripe":
-        errors.append("PAYMENT_BACKEND must be stripe in production")
+    if current.PAYMENT_BACKEND not in {"stripe", "stub"}:
+        errors.append("PAYMENT_BACKEND must be stripe or stub in production")
     if current.EMAIL_BACKEND not in {"disabled", "sendgrid", "smtp"}:
         errors.append("EMAIL_BACKEND must be disabled, sendgrid, or smtp in production")
     if current.CELERY_TASK_ALWAYS_EAGER:
         errors.append("CELERY_TASK_ALWAYS_EAGER must be false in production")
     if any("localhost" in origin or "127.0.0.1" in origin for origin in current.cors_origins):
         errors.append("ALLOWED_CORS_ORIGINS must not include localhost in production")
-    if not current.STRIPE_PUBLISHABLE_KEY or _looks_placeholder(current.STRIPE_PUBLISHABLE_KEY):
-        errors.append("STRIPE_PUBLISHABLE_KEY must be configured in production")
-    if _looks_placeholder(current.STRIPE_SECRET_KEY):
-        errors.append("STRIPE_SECRET_KEY must be configured in production")
-    if _looks_placeholder(current.STRIPE_WEBHOOK_SECRET):
-        errors.append("STRIPE_WEBHOOK_SECRET must be configured in production")
+    if current.PAYMENT_BACKEND == "stripe":
+        if not current.STRIPE_PUBLISHABLE_KEY or _looks_placeholder(current.STRIPE_PUBLISHABLE_KEY):
+            errors.append("STRIPE_PUBLISHABLE_KEY must be configured when PAYMENT_BACKEND is stripe")
+        if _looks_placeholder(current.STRIPE_SECRET_KEY):
+            errors.append("STRIPE_SECRET_KEY must be configured when PAYMENT_BACKEND is stripe")
+        if _looks_placeholder(current.STRIPE_WEBHOOK_SECRET):
+            errors.append("STRIPE_WEBHOOK_SECRET must be configured when PAYMENT_BACKEND is stripe")
     if current.EMAIL_BACKEND == "sendgrid":
         if _looks_placeholder(current.SENDGRID_API_KEY):
             errors.append("SENDGRID_API_KEY must be configured in production")
