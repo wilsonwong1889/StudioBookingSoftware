@@ -5,6 +5,17 @@ from app.services import notification_service
 
 
 class NotificationServiceTest(unittest.TestCase):
+    def test_send_email_disabled_backend_returns_noop_payload(self) -> None:
+        with patch.object(notification_service.settings, "EMAIL_BACKEND", "disabled"):
+            delivery = notification_service.send_email(
+                to_email="user@example.com",
+                subject="Hello",
+                plain_text_content="Disabled body",
+            )
+
+        self.assertEqual(delivery["backend"], "disabled")
+        self.assertEqual(delivery["status_code"], 204)
+
     def test_send_email_console_backend_returns_console_payload(self) -> None:
         with patch.object(notification_service.settings, "EMAIL_BACKEND", "console"):
             delivery = notification_service.send_email(
