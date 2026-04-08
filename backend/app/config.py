@@ -175,8 +175,8 @@ def validate_runtime_configuration(settings_obj: Optional[Settings] = None) -> N
         errors.append("APP_BASE_URL must use https in production")
     if current.PAYMENT_BACKEND != "stripe":
         errors.append("PAYMENT_BACKEND must be stripe in production")
-    if current.EMAIL_BACKEND not in {"sendgrid", "smtp"}:
-        errors.append("EMAIL_BACKEND must be sendgrid or smtp in production")
+    if current.EMAIL_BACKEND not in {"disabled", "sendgrid", "smtp"}:
+        errors.append("EMAIL_BACKEND must be disabled, sendgrid, or smtp in production")
     if current.CELERY_TASK_ALWAYS_EAGER:
         errors.append("CELERY_TASK_ALWAYS_EAGER must be false in production")
     if any("localhost" in origin or "127.0.0.1" in origin for origin in current.cors_origins):

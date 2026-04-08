@@ -21,6 +21,13 @@ def send_email(
     plain_text_content: str,
     html_content: Optional[str] = None,
 ) -> dict:
+    if settings.EMAIL_BACKEND == "disabled":
+        return {
+            "backend": "disabled",
+            "status_code": 204,
+            "message": "Email delivery disabled",
+        }
+
     if settings.EMAIL_BACKEND == "sendgrid":
         if not settings.SENDGRID_API_KEY or "placeholder" in settings.SENDGRID_API_KEY.lower():
             raise ValueError("SENDGRID_API_KEY is not configured")
