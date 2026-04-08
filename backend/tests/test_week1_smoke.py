@@ -938,12 +938,22 @@ class AppSmokeTest(unittest.TestCase):
         admin_headers = {"Authorization": f"Bearer {response.json()['access_token']}"}
 
         business_timezone = ZoneInfo("America/Edmonton")
+        pending_booking_date = datetime.now(business_timezone).date() + timedelta(days=3)
+        manual_booking_date = pending_booking_date + timedelta(days=1)
+        admin_self_booking_date = manual_booking_date + timedelta(days=1)
         response = self.client.post(
             "/api/bookings",
             headers=admin_headers,
             json={
                 "room_id": admin_room_id,
-                "start_time": datetime(2026, 4, 5, 10, 0, tzinfo=business_timezone).isoformat(),
+                "start_time": datetime(
+                    admin_self_booking_date.year,
+                    admin_self_booking_date.month,
+                    admin_self_booking_date.day,
+                    10,
+                    0,
+                    tzinfo=business_timezone,
+                ).isoformat(),
                 "duration_minutes": 60,
             },
         )
@@ -954,7 +964,14 @@ class AppSmokeTest(unittest.TestCase):
             headers=admin_headers,
             json={
                 "room_id": admin_room_id,
-                "start_time": datetime(2026, 4, 5, 11, 0, tzinfo=business_timezone).isoformat(),
+                "start_time": datetime(
+                    admin_self_booking_date.year,
+                    admin_self_booking_date.month,
+                    admin_self_booking_date.day,
+                    11,
+                    0,
+                    tzinfo=business_timezone,
+                ).isoformat(),
                 "duration_minutes": 60,
             },
         )
@@ -989,8 +1006,15 @@ class AppSmokeTest(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.text)
         self.assertTrue(response.json()["opt_in_sms"])
 
-        start_time = datetime(2026, 4, 3, 12, 0, tzinfo=business_timezone)
-        target_date = date(2026, 4, 3)
+        start_time = datetime(
+            pending_booking_date.year,
+            pending_booking_date.month,
+            pending_booking_date.day,
+            12,
+            0,
+            tzinfo=business_timezone,
+        )
+        target_date = pending_booking_date
 
         response = self.client.post(
             "/api/bookings",
@@ -1071,7 +1095,14 @@ class AppSmokeTest(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual(response.json()[0]["status"], "Refunded")
 
-        manual_start_time = datetime(2026, 4, 4, 14, 0, tzinfo=business_timezone)
+        manual_start_time = datetime(
+            manual_booking_date.year,
+            manual_booking_date.month,
+            manual_booking_date.day,
+            14,
+            0,
+            tzinfo=business_timezone,
+        )
         response = self.client.post(
             "/api/admin/bookings/manual",
             headers=admin_headers,
@@ -1096,7 +1127,14 @@ class AppSmokeTest(unittest.TestCase):
                 "user_email": "walkin@example.com",
                 "full_name": "Walk In",
                 "room_id": room_id,
-                "start_time": datetime(2026, 4, 4, 15, 0, tzinfo=business_timezone).isoformat(),
+                "start_time": datetime(
+                    manual_booking_date.year,
+                    manual_booking_date.month,
+                    manual_booking_date.day,
+                    15,
+                    0,
+                    tzinfo=business_timezone,
+                ).isoformat(),
                 "duration_minutes": 60,
                 "note": "Same day admin override",
             },
@@ -1162,11 +1200,11 @@ class AppSmokeTest(unittest.TestCase):
         response = self.client.post(
             "/api/admin/bookings/clear-day",
             headers=admin_headers,
-            json={"date": "2026-04-04"},
+            json={"date": manual_booking_date.isoformat()},
         )
         self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual(response.json()["scope"], "day")
-        self.assertEqual(response.json()["target_date"], "2026-04-04")
+        self.assertEqual(response.json()["target_date"], manual_booking_date.isoformat())
         self.assertGreaterEqual(response.json()["deleted_count"], 1)
 
         response = self.client.get("/api/admin/bookings?email=walkin@example.com", headers=admin_headers)
