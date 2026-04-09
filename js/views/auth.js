@@ -224,7 +224,7 @@ export function renderAuthView(state) {
 
   if (elements.accountHeroCopy) {
     elements.accountHeroCopy.textContent = state.currentUser
-      ? "Update your personal details, reminder preferences, and saved payment method metadata here."
+      ? "Update your personal details, password, and reminder preferences here."
       : "Use this page for account entry, profile updates, password changes, and reminder preferences.";
   }
 

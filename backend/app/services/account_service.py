@@ -45,8 +45,6 @@ def serialize_admin_account(user: User, booking_stats: Optional[dict] = None) ->
         "phone": user.phone,
         "birthday": user.birthday,
         "billing_address": user.billing_address,
-        "saved_payment_method": user.saved_payment_method,
-        "stripe_customer_id": user.stripe_customer_id,
         "opt_in_email": user.opt_in_email,
         "opt_in_sms": user.opt_in_sms,
         "two_factor_enabled": user.two_factor_enabled,

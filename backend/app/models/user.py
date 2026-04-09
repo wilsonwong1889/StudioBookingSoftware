@@ -13,7 +13,6 @@ class User(Base):
     phone = Column(String)
     birthday = Column(Date)
     billing_address = Column(JSONB)
-    saved_payment_method = Column(JSONB)
     stripe_customer_id = Column(String)
     opt_in_email = Column(Boolean, default=True)
     opt_in_sms = Column(Boolean, default=False)

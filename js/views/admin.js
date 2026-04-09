@@ -246,24 +246,6 @@ function renderStaffTagRow(label, values = []) {
   `;
 }
 
-function formatCardSummary(savedPaymentMethod) {
-  if (!savedPaymentMethod) {
-    return "No saved card metadata";
-  }
-
-  const parts = [];
-  if (savedPaymentMethod.brand) {
-    parts.push(savedPaymentMethod.brand);
-  }
-  if (savedPaymentMethod.last4) {
-    parts.push(`ending in ${savedPaymentMethod.last4}`);
-  }
-  if (savedPaymentMethod.exp_month && savedPaymentMethod.exp_year) {
-    parts.push(`exp ${String(savedPaymentMethod.exp_month).padStart(2, "0")}/${savedPaymentMethod.exp_year}`);
-  }
-  return parts.join(" • ") || "Saved payment method on file";
-}
-
 function formatAddress(address) {
   if (!address) {
     return "No billing address";
@@ -300,7 +282,7 @@ function renderAdminAccountListItem(account, isSelected) {
         <span class="pill">${account.booking_count} booking${account.booking_count === 1 ? "" : "s"}</span>
       </div>
       <p>${account.phone ? formatPhone(account.phone) : "No phone on file"}</p>
-      <p>${formatCardSummary(account.saved_payment_method)}</p>
+      <p>${account.billing_address ? "Billing address on file" : "No billing address on file"}</p>
     </button>
   `;
 }
@@ -354,20 +336,10 @@ function renderAdminAccountDetail(account, currentUser) {
       </section>
 
       <section class="admin-account-section">
-        <h4>Billing and payment</h4>
-        <p class="field-help">Saved card displays are masked to the last 4 digits only.</p>
+        <h4>Billing</h4>
+        <p class="field-help">Card details are handled by Stripe and are not stored in this app.</p>
         <div class="admin-detail-grid">
           ${renderAccountField("Billing address", formatAddress(account.billing_address))}
-          ${renderAccountField("Stripe customer ID", account.stripe_customer_id || "Not connected", { mono: true })}
-          ${renderAccountField("Payment method ID", account.saved_payment_method?.payment_method_id || "Not stored", { mono: true })}
-          ${renderAccountField("Card brand", account.saved_payment_method?.brand || "Not provided")}
-          ${renderAccountField("Card last 4", account.saved_payment_method?.last4 || "Not stored")}
-          ${renderAccountField(
-            "Expiry",
-            account.saved_payment_method?.exp_month && account.saved_payment_method?.exp_year
-              ? `${String(account.saved_payment_method.exp_month).padStart(2, "0")}/${account.saved_payment_method.exp_year}`
-              : "Not stored",
-          )}
         </div>
       </section>
 

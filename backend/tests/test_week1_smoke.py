@@ -276,13 +276,6 @@ class AppSmokeTest(unittest.TestCase):
                     "postal_code": "T5J0N3",
                     "country": "Canada",
                 },
-                "saved_payment_method": {
-                    "payment_method_id": "pm_test_4242",
-                    "brand": "Visa",
-                    "last4": "1111222233334242",
-                    "exp_month": 12,
-                    "exp_year": 2030,
-                },
                 "opt_in_sms": True,
             },
         )
@@ -290,7 +283,7 @@ class AppSmokeTest(unittest.TestCase):
         self.assertEqual(response.json()["full_name"], "Updated User")
         self.assertEqual(response.json()["birthday"], "1995-07-14")
         self.assertEqual(response.json()["billing_address"]["city"], "Edmonton")
-        self.assertEqual(response.json()["saved_payment_method"]["last4"], "4242")
+        self.assertNotIn("saved_payment_method", response.json())
         self.assertTrue(response.json()["opt_in_sms"])
 
         response = self.client.put(
@@ -1344,24 +1337,17 @@ class AppSmokeTest(unittest.TestCase):
                     "postal_code": "T2P1J9",
                     "country": "Canada",
                 },
-                "saved_payment_method": {
-                    "payment_method_id": "pm_history_4242",
-                    "brand": "Visa",
-                    "last4": "4242424242424242",
-                    "exp_month": 10,
-                    "exp_year": 2031,
-                },
             },
         )
         self.assertEqual(response.status_code, 200, response.text)
-        self.assertEqual(response.json()["saved_payment_method"]["last4"], "4242")
+        self.assertNotIn("saved_payment_method", response.json())
 
         response = self.client.get("/api/admin/users", headers=admin_headers)
         self.assertEqual(response.status_code, 200, response.text)
         history_account = next(
             account for account in response.json() if account["email"] == "history-user@example.com"
         )
-        self.assertEqual(history_account["saved_payment_method"]["last4"], "4242")
+        self.assertNotIn("saved_payment_method", history_account)
         self.assertEqual(history_account["billing_address"]["city"], "Calgary")
 
         business_timezone = ZoneInfo("America/Edmonton")

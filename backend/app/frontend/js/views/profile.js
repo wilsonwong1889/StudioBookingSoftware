@@ -31,26 +31,6 @@ function buildBillingAddress(form) {
   return address.line1 ? address : null;
 }
 
-function buildSavedPaymentMethod(form) {
-  const savedPaymentMethod = {
-    payment_method_id: asText(form.get("payment_method_id")),
-    brand: asText(form.get("card_brand")),
-    last4: asText(form.get("card_last4")),
-    exp_month: asText(form.get("card_exp_month")),
-    exp_year: asText(form.get("card_exp_year")),
-  };
-
-  if (!Object.values(savedPaymentMethod).some(Boolean)) {
-    return null;
-  }
-
-  return {
-    ...savedPaymentMethod,
-    exp_month: savedPaymentMethod.exp_month ? Number(savedPaymentMethod.exp_month) : null,
-    exp_year: savedPaymentMethod.exp_year ? Number(savedPaymentMethod.exp_year) : null,
-  };
-}
-
 function buildProfilePayload() {
   const form = new FormData(elements.profileForm);
   return {
@@ -58,7 +38,6 @@ function buildProfilePayload() {
     phone: asText(form.get("phone")),
     birthday: asText(form.get("birthday")),
     billing_address: buildBillingAddress(form),
-    saved_payment_method: buildSavedPaymentMethod(form),
     opt_in_email: form.get("opt_in_email") === "on",
     opt_in_sms: form.get("opt_in_sms") === "on",
     two_factor_enabled: form.get("two_factor_enabled") === "on",
@@ -90,11 +69,6 @@ function applySnapshot(snapshot) {
   elements.profileForm.billing_state.value = snapshot.billing_address?.state || "";
   elements.profileForm.billing_postal_code.value = snapshot.billing_address?.postal_code || "";
   elements.profileForm.billing_country.value = snapshot.billing_address?.country || "";
-  elements.profileForm.payment_method_id.value = snapshot.saved_payment_method?.payment_method_id || "";
-  elements.profileForm.card_brand.value = snapshot.saved_payment_method?.brand || "";
-  elements.profileForm.card_last4.value = snapshot.saved_payment_method?.last4 || "";
-  elements.profileForm.card_exp_month.value = snapshot.saved_payment_method?.exp_month || "";
-  elements.profileForm.card_exp_year.value = snapshot.saved_payment_method?.exp_year || "";
   elements.profileForm.opt_in_email.checked = Boolean(snapshot.opt_in_email);
   elements.profileForm.opt_in_sms.checked = Boolean(snapshot.opt_in_sms);
   elements.profileForm.two_factor_enabled.checked = Boolean(snapshot.two_factor_enabled);
@@ -110,7 +84,6 @@ function profileFingerprint(user) {
     phone: user.phone,
     birthday: user.birthday,
     billing_address: user.billing_address,
-    saved_payment_method: user.saved_payment_method,
     opt_in_email: user.opt_in_email,
     opt_in_sms: user.opt_in_sms,
     two_factor_enabled: user.two_factor_enabled,
@@ -270,7 +243,6 @@ function hydrateFromUser(user) {
     phone: user.phone,
     birthday: user.birthday,
     billing_address: user.billing_address,
-    saved_payment_method: user.saved_payment_method,
     opt_in_email: user.opt_in_email,
     opt_in_sms: user.opt_in_sms,
     two_factor_enabled: user.two_factor_enabled,
