@@ -779,6 +779,7 @@ def get_booking_payment_session(db: Session, booking: Booking, user: User) -> di
     )
     if booking.payment_intent_id != payment_session.intent_id:
         booking.payment_intent_id = payment_session.intent_id
+        booking.payment_client_secret = payment_session.client_secret
         db.commit()
         db.refresh(booking)
 

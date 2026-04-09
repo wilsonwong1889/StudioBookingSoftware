@@ -3,6 +3,7 @@ import sys
 import time
 import unittest
 from datetime import date, datetime, timedelta, timezone
+from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
 from zoneinfo import ZoneInfo
@@ -643,6 +644,34 @@ class BookingServiceMatrixTest(unittest.TestCase):
 
             with self.assertRaises(self.PaymentSessionError):
                 self.get_booking_payment_session(db, booking, user)
+
+    def test_131a_payment_session_persists_replaced_intent_and_secret(self) -> None:
+        with self.SessionLocal() as db:
+            user = self._create_user(db)
+            room = self._create_room(db)
+            booking = self._insert_booking_direct(
+                db,
+                user=user,
+                room=room,
+                start_time=self._aware_time(day=6, hour=11),
+                status="PendingPayment",
+                payment_intent_id="pi_stub_existing",
+            )
+
+            with patch(
+                "app.services.booking_service.get_payment_intent_session",
+                return_value=SimpleNamespace(
+                    intent_id="pi_live_123",
+                    client_secret="pi_client_secret_live_123",
+                ),
+            ):
+                payment_session = self.get_booking_payment_session(db, booking, user)
+
+            db.refresh(booking)
+            self.assertEqual(payment_session["payment_intent_id"], "pi_live_123")
+            self.assertEqual(payment_session["payment_client_secret"], "pi_client_secret_live_123")
+            self.assertEqual(booking.payment_intent_id, "pi_live_123")
+            self.assertEqual(booking.payment_client_secret, "pi_client_secret_live_123")
 
     def test_131b_create_booking_rolls_back_when_payment_setup_fails(self) -> None:
         with self.SessionLocal() as db:

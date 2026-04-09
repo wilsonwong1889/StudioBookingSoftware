@@ -49,6 +49,36 @@ class PaymentServiceTest(unittest.TestCase):
         self.assertEqual(payment_service.stripe.api_key, "sk_test_realistic_value")
         self.assertEqual(payment_service.stripe.api_version, "2026-02-25.clover")
 
+    def test_stripe_payment_session_recreates_stub_intents(self) -> None:
+        fake_settings = SimpleNamespace(
+            PAYMENT_BACKEND="stripe",
+            STRIPE_PUBLISHABLE_KEY="pk_test_realistic_value",
+            STRIPE_SECRET_KEY="sk_test_realistic_value",
+            STRIPE_WEBHOOK_SECRET="whsec_test_realistic_value",
+            STRIPE_API_VERSION="2026-02-25.clover",
+        )
+        fake_intent = {"id": "pi_live_123", "client_secret": "pi_client_secret_live_123"}
+
+        with patch.object(payment_service, "settings", fake_settings):
+            with patch.object(payment_service.stripe.PaymentIntent, "retrieve") as retrieve_mock:
+                with patch.object(
+                    payment_service.stripe.PaymentIntent,
+                    "create",
+                    return_value=fake_intent,
+                ) as create_mock:
+                    result = payment_service.get_payment_intent_session(
+                        payment_intent_id="pi_stub_existing",
+                        amount_cents=8500,
+                        currency="CAD",
+                        booking_id="booking_123",
+                        user_email="user@example.com",
+                    )
+
+        retrieve_mock.assert_not_called()
+        create_mock.assert_called_once()
+        self.assertEqual(result.intent_id, "pi_live_123")
+        self.assertEqual(result.client_secret, "pi_client_secret_live_123")
+
     def test_provider_error_redacts_secret_like_tokens(self) -> None:
         fake_settings = SimpleNamespace(
             PAYMENT_BACKEND="stripe",

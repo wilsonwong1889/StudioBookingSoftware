@@ -36,6 +36,12 @@ def _set_stripe_api_key() -> None:
     stripe.api_version = settings.STRIPE_API_VERSION
 
 
+def _can_reuse_stripe_payment_intent(payment_intent_id: str | None) -> bool:
+    return bool(payment_intent_id) and payment_intent_id.startswith("pi_") and not payment_intent_id.startswith(
+        "pi_stub_"
+    )
+
+
 def _require_stripe_configuration(*, purpose: str, required_keys: tuple[str, ...]) -> None:
     status = get_stripe_configuration_status(settings)
     readiness_by_key = {
@@ -105,7 +111,7 @@ def get_payment_intent_session(
             purpose="checkout",
             required_keys=("STRIPE_PUBLISHABLE_KEY", "STRIPE_SECRET_KEY"),
         )
-        if payment_intent_id:
+        if _can_reuse_stripe_payment_intent(payment_intent_id):
             intent = _run_stripe_request(
                 lambda: stripe.PaymentIntent.retrieve(payment_intent_id),
                 purpose="payment intent lookup",
