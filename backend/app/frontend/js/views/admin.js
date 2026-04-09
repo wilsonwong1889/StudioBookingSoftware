@@ -553,6 +553,7 @@ function renderAdminBookingCard(booking) {
         <div class="availability-preview">
           <span class="availability-label">Booking status</span>
           <p>${booking.status}</p>
+          <p>${booking.created_at ? `Booked at ${formatBookingDate(booking.created_at)}` : "Booking time unavailable"}</p>
           <p>${booking.checked_in_at ? `Checked in ${formatBookingDate(booking.checked_in_at)}` : "Not checked in yet"}</p>
           <p>${booking.cancelled_at ? `Cancelled ${formatBookingDate(booking.cancelled_at)}` : "Active or completed booking"}</p>
         </div>

@@ -144,6 +144,7 @@ function renderPaymentPanel(state, booking) {
   }
 
   const isPending = booking.status === "PendingPayment";
+  const canAdminWaivePayment = isPending && Boolean(state.currentUser?.is_admin);
   toggleHidden(elements.bookingPaymentPanel, !isPending);
   if (!isPending) {
     clearPaymentElement();
@@ -155,6 +156,13 @@ function renderPaymentPanel(state, booking) {
     <button class="ghost-button" type="button" data-booking-detail-action="load-payment" data-booking-id="${booking.id}">
       Load payment
     </button>
+    ${
+      canAdminWaivePayment
+        ? `<button class="ghost-button" type="button" data-booking-detail-action="waive-payment" data-booking-id="${booking.id}">
+      Skip Stripe as admin
+    </button>`
+        : ""
+    }
     <button class="primary-button hidden" type="button" data-booking-detail-action="confirm-payment" data-booking-id="${booking.id}">
       Confirm payment
     </button>
@@ -270,6 +278,19 @@ export function initBookingDetailView(actions) {
           throw new Error(result.error.message || "Payment confirmation failed");
         }
         window.location.assign(successUrl.toString());
+        return;
+      }
+
+      if (action === "waive-payment") {
+        const confirmed = window.confirm("Skip Stripe and mark this booking free?");
+        if (!confirmed) {
+          return;
+        }
+        setState({ message: "Skipping Stripe and marking booking free..." });
+        const booking = await api.adminWaiveBookingPayment(button.dataset.bookingId);
+        clearPaymentElement();
+        setState({ selectedBooking: booking, message: "Booking marked free." });
+        window.location.assign(buildPaymentSuccessUrl(booking.id).toString());
       }
     } catch (error) {
       setState({ message: error.message });

@@ -51,11 +51,110 @@ function getBookingSortValue(value) {
   return value ? new Date(value).getTime() : 0;
 }
 
+const RECENT_BOOKING_SECTIONS = [
+  {
+    key: "Completed",
+    label: "Completed / checked in",
+    description: "Newest checked-in sessions first.",
+  },
+  {
+    key: "Paid",
+    label: "Paid",
+    description: "Paid bookings waiting for their session stay next.",
+  },
+  {
+    key: "Refunded",
+    label: "Refunded",
+    description: "Refunded bookings stay above cancellations.",
+  },
+  {
+    key: "Cancelled",
+    label: "Cancelled",
+    description: "Cancelled bookings stay at the bottom.",
+  },
+];
+
 function formatCountdown(seconds) {
   const safeSeconds = Math.max(0, seconds || 0);
   const minutes = Math.floor(safeSeconds / 60);
   const remainingSeconds = safeSeconds % 60;
   return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
+}
+
+function formatBookingCount(count) {
+  return `${count} booking${count === 1 ? "" : "s"}`;
+}
+
+function getRecentBookingSectionKey(booking) {
+  if (booking.status === "Completed") {
+    return "Completed";
+  }
+  if (booking.status === "Paid") {
+    return "Paid";
+  }
+  if (booking.status === "Refunded") {
+    return "Refunded";
+  }
+  if (booking.status === "Cancelled") {
+    return "Cancelled";
+  }
+  return "Cancelled";
+}
+
+function getRecentBookingTimeValue(booking) {
+  if (booking.status === "Completed") {
+    return getBookingSortValue(booking.checked_in_at || booking.start_time || booking.created_at);
+  }
+  if (booking.status === "Paid") {
+    return getBookingSortValue(booking.confirmed_at || booking.created_at || booking.start_time);
+  }
+  if (booking.status === "Refunded") {
+    return getBookingSortValue(booking.updated_at || booking.created_at || booking.start_time);
+  }
+  if (booking.status === "Cancelled") {
+    return getBookingSortValue(booking.cancelled_at || booking.created_at || booking.start_time);
+  }
+  return getBookingSortValue(booking.start_time || booking.created_at);
+}
+
+function renderRecentBookingSections(bookings) {
+  const sections = RECENT_BOOKING_SECTIONS.map((section) => {
+    const groupedBookings = bookings
+      .filter((booking) => getRecentBookingSectionKey(booking) === section.key)
+      .sort((left, right) => getRecentBookingTimeValue(right) - getRecentBookingTimeValue(left));
+
+    return {
+      ...section,
+      bookings: groupedBookings,
+    };
+  }).filter((section) => section.bookings.length);
+
+  if (!sections.length) {
+    return `
+      <div class="empty-state">
+        No recent bookings yet.
+      </div>
+    `;
+  }
+
+  return sections
+    .map(
+      (section) => `
+        <section class="booking-history-group">
+          <div class="booking-history-group-header">
+            <div class="booking-history-group-copy">
+              <p class="panel-kicker">${section.label}</p>
+              <p>${section.description}</p>
+            </div>
+            <span class="pill">${formatBookingCount(section.bookings.length)}</span>
+          </div>
+          <div class="booking-list">
+            ${section.bookings.map((booking) => renderBookingCard(booking)).join("")}
+          </div>
+        </section>
+      `,
+    )
+    .join("");
 }
 
 function buildDurationValues(limitMinutes = MAX_DURATION_MINUTES) {
@@ -611,7 +710,7 @@ export function renderBookingsView(currentState) {
     });
   const recentBookings = currentState.bookings
     .filter((booking) => booking.status !== "PendingPayment")
-    .sort((left, right) => getBookingSortValue(right.start_time) - getBookingSortValue(left.start_time));
+    .sort((left, right) => getRecentBookingTimeValue(right) - getRecentBookingTimeValue(left));
 
   if (elements.pendingBookingsCount) {
     elements.pendingBookingsCount.classList.toggle("hidden", !isSignedIn);
@@ -619,7 +718,7 @@ export function renderBookingsView(currentState) {
   }
 
   if (elements.recentBookingsCount) {
-    elements.recentBookingsCount.textContent = `${recentBookings.length} booking${recentBookings.length === 1 ? "" : "s"}`;
+    elements.recentBookingsCount.textContent = formatBookingCount(recentBookings.length);
   }
 
   if (!isSignedIn) {
@@ -656,12 +755,6 @@ export function renderBookingsView(currentState) {
     if (!recentBookings.length) {
       elements.recentBookingsShell.open = false;
     }
-    elements.recentBookingsList.innerHTML = recentBookings.length
-      ? recentBookings.map((booking) => renderBookingCard(booking)).join("")
-      : `
-        <div class="empty-state">
-          No recent bookings yet.
-        </div>
-      `;
+    elements.recentBookingsList.innerHTML = renderRecentBookingSections(recentBookings);
   }
 }

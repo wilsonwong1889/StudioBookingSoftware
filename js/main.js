@@ -1,10 +1,10 @@
 import { api } from "./api.js?v=20260401r";
 import { CURRENT_PAGE, getSearchParam } from "./config.js?v=20260401r";
 import { setState, state, subscribe, persistToken } from "./state.js?v=20260401r";
-import { initAdminView, renderAdminView } from "./views/admin.js?v=20260408d";
+import { initAdminView, renderAdminView } from "./views/admin.js?v=20260408f";
 import { initAuthView, renderAuthView } from "./views/auth.js?v=20260401y";
-import { initBookingDetailView, renderBookingDetailView } from "./views/booking-detail.js?v=20260408c";
-import { initBookingsView, renderBookingsView } from "./views/bookings.js?v=20260401w";
+import { initBookingDetailView, renderBookingDetailView } from "./views/booking-detail.js?v=20260408h";
+import { initBookingsView, renderBookingsView } from "./views/bookings.js?v=20260408g";
 import { initInfoView, renderInfoView } from "./views/info.js?v=20260401r";
 import { initPaymentSuccessView, renderPaymentSuccessView } from "./views/payment-success.js?v=20260408c";
 import { initProfileView, renderProfileView } from "./views/profile.js?v=20260401y";
