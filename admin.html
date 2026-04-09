@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin | StudioBookingSoftware</title>
-    <link rel="stylesheet" href="/assets/styles/app.css?v=20260401z" />
+    <link rel="stylesheet" href="/assets/styles/app.css?v=20260408n" />
   </head>
   <body data-page="admin">
     <div class="site-frame">
@@ -189,86 +189,106 @@
                 <div id="admin-day-schedule" class="admin-day-schedule"></div>
               </section>
 
-              <div class="admin-grid admin-grid-bookings">
-                <form id="admin-booking-lookup-form" class="stack-form hidden admin-subpanel">
-                  <h3>Booking lookup</h3>
-                  <label>
-                    <span>User email</span>
-                    <input type="email" name="email" />
-                  </label>
-                  <label>
-                    <span>Booking code</span>
-                    <input type="text" name="booking_code" />
-                  </label>
-                  <label>
-                    <span>Status</span>
-                    <select name="status">
-                      <option value="">Any status</option>
-                      <option value="PendingPayment">PendingPayment</option>
-                      <option value="Paid">Paid</option>
-                      <option value="Completed">Completed</option>
-                      <option value="Cancelled">Cancelled</option>
-                      <option value="Refunded">Refunded</option>
-                    </select>
-                  </label>
-                  <button class="ghost-button" type="submit">Search bookings</button>
-                  <button id="admin-booking-clear" class="ghost-button" type="button">Clear search</button>
-                </form>
+              <div id="admin-booking-quick-summary" class="admin-summary-grid admin-booking-summary-grid"></div>
 
-                <form id="admin-manual-booking-form" class="stack-form hidden admin-subpanel">
-                  <h3>Manual booking</h3>
-                  <label>
-                    <span>User email</span>
-                    <input type="email" name="user_email" required />
-                  </label>
-                  <label>
-                    <span>Full name</span>
-                    <input type="text" name="full_name" />
-                  </label>
-                  <label>
-                    <span>Room</span>
-                    <select id="admin-room-select" name="room_id"></select>
-                  </label>
-                  <label>
-                    <span>Start time</span>
-                    <input id="admin-booking-start" type="datetime-local" name="start_time" required />
-                  </label>
-                  <label>
-                    <span>Duration</span>
-                    <select name="duration_minutes">
-                      <option value="60">1 hour</option>
-                      <option value="120">2 hours</option>
-                      <option value="180">3 hours</option>
-                      <option value="240">4 hours</option>
-                      <option value="300">5 hours</option>
-                    </select>
-                  </label>
-                  <div id="admin-manual-staff-section" class="profile-span-2 hidden">
-                    <span>Optional staff</span>
-                    <p class="field-help">Attach room staff add-ons to this manual booking when needed.</p>
-                    <div id="admin-manual-staff-options" class="staff-options"></div>
+              <div class="admin-bookings-workbench">
+                <div class="admin-bookings-sidebar">
+                  <form id="admin-booking-lookup-form" class="stack-form hidden admin-subpanel">
+                    <div class="panel-header">
+                      <p class="panel-kicker">Lookup</p>
+                      <h3>Find a booking fast</h3>
+                      <p class="panel-copy">Search by customer email, booking code, or status before taking action.</p>
+                    </div>
+                    <label>
+                      <span>User email</span>
+                      <input type="email" name="email" />
+                    </label>
+                    <label>
+                      <span>Booking code</span>
+                      <input type="text" name="booking_code" />
+                    </label>
+                    <label>
+                      <span>Status</span>
+                      <select name="status">
+                        <option value="">Any status</option>
+                        <option value="PendingPayment">PendingPayment</option>
+                        <option value="Paid">Paid</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                        <option value="Refunded">Refunded</option>
+                      </select>
+                    </label>
+                    <div class="room-actions">
+                      <button class="ghost-button" type="submit">Search bookings</button>
+                      <button id="admin-booking-clear" class="ghost-button" type="button">Clear search</button>
+                    </div>
+                  </form>
+
+                  <form id="admin-manual-booking-form" class="stack-form hidden admin-subpanel">
+                    <div class="panel-header">
+                      <p class="panel-kicker">Manual</p>
+                      <h3>Create a walk-in or staff booking</h3>
+                      <p class="panel-copy">Use this when the booking starts outside the customer flow and still needs a tracked record.</p>
+                    </div>
+                    <label>
+                      <span>User email</span>
+                      <input type="email" name="user_email" required />
+                    </label>
+                    <label>
+                      <span>Full name</span>
+                      <input type="text" name="full_name" />
+                    </label>
+                    <label>
+                      <span>Room</span>
+                      <select id="admin-room-select" name="room_id"></select>
+                    </label>
+                    <label>
+                      <span>Start time</span>
+                      <input id="admin-booking-start" type="datetime-local" name="start_time" required />
+                    </label>
+                    <label>
+                      <span>Duration</span>
+                      <select name="duration_minutes">
+                        <option value="60">1 hour</option>
+                        <option value="120">2 hours</option>
+                        <option value="180">3 hours</option>
+                        <option value="240">4 hours</option>
+                        <option value="300">5 hours</option>
+                      </select>
+                    </label>
+                    <div id="admin-manual-staff-section" class="profile-span-2 hidden">
+                      <span>Optional staff</span>
+                      <p class="field-help">Attach room staff add-ons to this manual booking when needed.</p>
+                      <div id="admin-manual-staff-options" class="staff-options"></div>
+                    </div>
+                    <label>
+                      <span>Booking notes</span>
+                      <textarea name="note" rows="3" placeholder="Walk-in details, setup notes, or access instructions"></textarea>
+                    </label>
+                    <button class="primary-button" type="submit">Create manual booking</button>
+                  </form>
+
+                  <section class="stack-form hidden admin-subpanel admin-bulk-danger">
+                    <div class="panel-header">
+                      <p class="panel-kicker">Bulk</p>
+                      <h3>Danger zone</h3>
+                      <p class="panel-copy">Only use bulk clearing when you intentionally want to permanently remove records.</p>
+                    </div>
+                    <button id="admin-clear-day-button" class="ghost-button room-action-danger" type="button">Clear bookings for selected day</button>
+                    <button id="admin-clear-past-button" class="ghost-button room-action-danger" type="button">Clear past bookings</button>
+                  </section>
+                </div>
+
+                <section class="admin-bookings-results-shell">
+                  <div class="panel-header">
+                    <p class="panel-kicker">Records</p>
+                    <h3>Live booking queue</h3>
+                    <p id="admin-booking-results-copy" class="panel-copy">See who booked, who cancelled, room details, staff add-ons, and booking notes in one organized list.</p>
                   </div>
-                  <label>
-                    <span>Booking notes</span>
-                    <textarea name="note" rows="3" placeholder="Walk-in details, setup notes, or access instructions"></textarea>
-                  </label>
-                  <button class="primary-button" type="submit">Create manual booking</button>
-                </form>
-
-                <section class="stack-form hidden admin-subpanel admin-bulk-danger">
-                  <h3>Bulk clearing</h3>
-                  <p class="field-help">Use these destructive actions only when you intentionally want to remove booking records.</p>
-                  <button id="admin-clear-day-button" class="ghost-button room-action-danger" type="button">Clear bookings for selected day</button>
-                  <button id="admin-clear-past-button" class="ghost-button room-action-danger" type="button">Clear past bookings</button>
+                  <div id="admin-booking-quick-filters" class="admin-booking-quick-filters"></div>
+                  <div id="admin-booking-results" class="booking-list hidden admin-booking-results-board"></div>
                 </section>
               </div>
-
-              <div class="panel-header">
-                <p class="panel-kicker">Records</p>
-                <h3>Booking details and customer information</h3>
-                <p class="panel-copy">See who booked, who cancelled, room details, staff add-ons, and booking notes in one organized list.</p>
-              </div>
-              <div id="admin-booking-results" class="booking-list hidden"></div>
             </section>
 
             <section id="admin-panel-staff" class="admin-tab-panel hidden" data-admin-panel="staff">
@@ -432,6 +452,6 @@
       </section>
     </div>
 
-    <script type="module" src="/assets/js/main.js?v=20260408j"></script>
+    <script type="module" src="/assets/js/main.js?v=20260408n"></script>
   </body>
 </html>

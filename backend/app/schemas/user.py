@@ -71,6 +71,14 @@ class UserPasswordUpdate(BaseModel):
     current_password: str
     new_password: str = Field(min_length=8, max_length=128)
 
+
+class UserDeleteConfirm(BaseModel):
+    password: str = Field(min_length=1, max_length=128)
+
+
+class AdminUserDeleteConfirm(BaseModel):
+    admin_password: str = Field(min_length=1, max_length=128)
+
 class Token(BaseModel):
     access_token: Optional[str] = None
     token_type: str = "bearer"

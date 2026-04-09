@@ -77,9 +77,10 @@ export const api = {
       body: JSON.stringify(payload),
     });
   },
-  deleteProfile() {
+  deleteProfile(payload) {
     return request("/api/users/me", {
       method: "DELETE",
+      body: JSON.stringify(payload),
     });
   },
   updatePassword(payload) {
@@ -238,9 +239,10 @@ export const api = {
       method: "POST",
     });
   },
-  adminDeleteUser(userId) {
+  adminDeleteUser(userId, payload) {
     return request(`/api/admin/users/${userId}`, {
       method: "DELETE",
+      body: JSON.stringify(payload),
     });
   },
   adminUpdateRoom(roomId, payload) {

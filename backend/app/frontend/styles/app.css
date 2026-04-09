@@ -1665,15 +1665,147 @@ select:focus {
   text-overflow: ellipsis;
 }
 
+.admin-booking-summary-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.admin-booking-summary-card {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.admin-booking-summary-card:hover,
+.admin-booking-summary-card:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(119, 35, 38, 0.28);
+  box-shadow: 0 14px 24px rgba(16, 13, 14, 0.08);
+}
+
+.admin-booking-summary-card.is-active {
+  border-color: rgba(119, 35, 38, 0.34);
+  background: linear-gradient(160deg, rgba(255, 248, 246, 0.9), rgba(255, 255, 255, 0.76));
+}
+
+.admin-bookings-workbench {
+  display: grid;
+  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.admin-bookings-sidebar,
+.admin-bookings-results-shell {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-bookings-sidebar {
+  position: sticky;
+  top: 20px;
+}
+
+.admin-bookings-results-shell {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.76), rgba(239, 231, 233, 0.68));
+}
+
+.admin-booking-quick-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-booking-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+}
+
+.admin-booking-filter-chip span {
+  font-weight: 700;
+}
+
+.admin-booking-filter-chip.is-active {
+  border-color: rgba(119, 35, 38, 0.34);
+  background: linear-gradient(145deg, rgba(255, 248, 246, 0.94), rgba(255, 255, 255, 0.8));
+}
+
+.admin-booking-results-board,
+.admin-booking-group,
+.admin-booking-group-list,
 .admin-booking-record {
   display: grid;
   gap: 14px;
 }
 
-.admin-booking-header,
-.admin-booking-detail-grid {
-  display: grid;
-  gap: 14px;
+.admin-booking-group {
+  padding-top: 8px;
+  border-top: 1px solid rgba(16, 13, 14, 0.08);
+}
+
+.admin-booking-group:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.admin-booking-group-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-booking-group-header h4,
+.admin-booking-group-header p {
+  margin: 0;
+}
+
+.admin-booking-group-header p {
+  color: var(--muted);
+}
+
+.admin-booking-record {
+  padding: 20px;
+  border: 1px solid rgba(16, 13, 14, 0.1);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.9), rgba(247, 243, 244, 0.86));
+  box-shadow: 0 18px 34px rgba(16, 13, 14, 0.07);
+  color: var(--ink);
+}
+
+.admin-booking-record.status-pendingpayment {
+  background: linear-gradient(160deg, rgba(255, 247, 239, 0.96), rgba(255, 255, 255, 0.9));
+  border-color: rgba(168, 73, 33, 0.24);
+  color: var(--ink);
+}
+
+.admin-booking-record.status-paid {
+  background: linear-gradient(160deg, rgba(255, 244, 244, 0.96), rgba(255, 255, 255, 0.9));
+  border-color: rgba(119, 35, 38, 0.2);
+  color: var(--ink);
+}
+
+.admin-booking-record.status-completed {
+  background: linear-gradient(160deg, rgba(246, 246, 246, 0.96), rgba(255, 255, 255, 0.92));
+  border-color: rgba(34, 34, 34, 0.14);
+  color: var(--ink);
+}
+
+.admin-booking-record.status-cancelled,
+.admin-booking-record.status-refunded {
+  background: linear-gradient(160deg, rgba(244, 242, 242, 0.96), rgba(255, 255, 255, 0.9));
+  border-color: rgba(113, 107, 108, 0.24);
+  color: var(--ink);
 }
 
 .admin-booking-header {
@@ -1681,8 +1813,92 @@ select:focus {
   align-items: start;
 }
 
-.admin-booking-detail-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.admin-booking-heading,
+.admin-booking-topline,
+.admin-booking-pill-stack,
+.admin-booking-contact-links {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-booking-topline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-booking-code {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(16, 13, 14, 0.07);
+  color: var(--ink);
+  font-family: "SFMono-Regular", "Consolas", "Liberation Mono", monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-booking-urgency {
+  border: 0;
+  background: rgba(168, 73, 33, 0.12);
+  color: var(--accent-deep);
+}
+
+.admin-booking-primary-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-booking-panel-card,
+.admin-booking-info-block {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid rgba(16, 13, 14, 0.08);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.admin-booking-panel-card p,
+.admin-booking-info-block p {
+  margin: 0;
+}
+
+.admin-booking-timeline-row {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.admin-booking-timeline-row span {
+  color: var(--muted);
+}
+
+.admin-booking-timeline-row strong {
+  font-size: 0.96rem;
+}
+
+.admin-booking-secondary-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.admin-booking-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-booking-actions .ghost-link {
+  text-decoration: none;
 }
 
 .status-pendingpayment {
@@ -2047,6 +2263,9 @@ select:focus {
   .admin-grid,
   .admin-workspace-nav,
   .admin-bookings-toolbar,
+  .admin-bookings-workbench,
+  .admin-booking-summary-grid,
+  .admin-booking-primary-grid,
   .admin-grid-bookings,
   .admin-grid-rooms,
   .admin-grid-staff,
@@ -2079,10 +2298,13 @@ select:focus {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .admin-bookings-sidebar {
+    position: static;
+  }
+
   .admin-schedule-hours,
   .admin-day-row,
   .admin-booking-header,
-  .admin-booking-detail-grid,
   .admin-account-detail-header,
   .admin-account-stats,
   .admin-test-case-header,
@@ -2126,6 +2348,11 @@ select:focus {
   .staff-profile-card-top,
   .staff-photo-preview-card {
     grid-template-columns: 1fr;
+  }
+
+  .admin-booking-timeline-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
   }
 
   .booking-history-summary {

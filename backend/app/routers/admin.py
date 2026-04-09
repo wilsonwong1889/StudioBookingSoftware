@@ -28,6 +28,8 @@ from app.schemas.admin import AdminTestCaseOut
 from app.schemas.admin import AdminSuiteDashMetaOut, AdminSuiteDashStatusOut
 from app.schemas.staff import StaffPhotoUploadOut, StaffProfileCreate, StaffProfileOut, StaffProfileUpdate
 from app.schemas.user import AdminUserAccountOut
+from app.schemas.user import AdminUserDeleteConfirm
+from app.core.security import verify_password
 from app.services.account_service import can_delete_admin_account, delete_user_account, list_accounts_for_admin
 from app.services.booking_service import (
     check_in_booking,
@@ -122,10 +124,13 @@ def admin_suitedash_contact_meta(
 @router.delete("/users/{user_id}", status_code=204)
 def admin_delete_user(
     user_id: str,
+    payload: AdminUserDeleteConfirm,
     db: Session = Depends(get_db),
     admin: User = Depends(get_admin_user),
     _: None = Depends(admin_rate_limit),
 ):
+    if not verify_password(payload.admin_password, admin.password_hash):
+        raise HTTPException(status_code=400, detail="Admin password is incorrect")
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")

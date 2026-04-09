@@ -315,12 +315,18 @@ export function initProfileView(actions) {
       return;
     }
 
+    const deletePassword = window.prompt("Enter your password to delete this account.");
+    if (!deletePassword) {
+      setState({ message: "Account deletion cancelled." });
+      return;
+    }
+
     try {
       elements.profileDeleteButton.disabled = true;
       setSaveState("Deleting account...", "Removing your profile and ending this session.", {
         danger: true,
       });
-      await api.deleteProfile();
+      await api.deleteProfile({ password: deletePassword });
       clearDraft({ keepMessage: true });
       persistToken(null);
       await actions.clearSession();

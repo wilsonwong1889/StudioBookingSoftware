@@ -203,10 +203,12 @@ class AppSmokeTest(unittest.TestCase):
         self.assertIn("Backend test cases", admin_page.text)
         self.assertIn("admin-panel-accounts", admin_page.text)
         self.assertIn("admin-panel-qa", admin_page.text)
+        self.assertIn("admin-booking-quick-summary", admin_page.text)
+        self.assertIn("admin-booking-quick-filters", admin_page.text)
         self.assertIn("admin-accounts-list", admin_page.text)
         self.assertIn("admin-test-case-summary", admin_page.text)
         self.assertIn("admin-test-cases-list", admin_page.text)
-        self.assertIn("20260408j", admin_page.text)
+        self.assertIn("20260408n", admin_page.text)
         self.assertLess(admin_page.text.index("Room management"), admin_page.text.index("Backend test cases"))
 
         response = self.client.get("/assets/styles/app.css")
@@ -222,7 +224,7 @@ class AppSmokeTest(unittest.TestCase):
         self.assertIn("refreshSession", response.text)
         self.assertIn('./api.js?v=20260401r', response.text)
         self.assertIn('./state.js?v=20260401r', response.text)
-        self.assertIn("views/admin.js?v=20260408j", response.text)
+        self.assertIn("views/admin.js?v=20260408n", response.text)
         self.assertIn("views/booking-detail.js?v=", response.text)
         self.assertIn("views/payment-success.js?v=", response.text)
         self.assertIn("views/bookings.js?v=20260408j", response.text)
@@ -230,7 +232,7 @@ class AppSmokeTest(unittest.TestCase):
         self.assertIn("views/rooms.js?v=20260408e", response.text)
         self.assertIn("views/room-detail.js?v=20260401r", response.text)
         self.assertIn("views/auth.js?v=20260401ab", response.text)
-        self.assertIn("views/profile.js?v=20260401ab", response.text)
+        self.assertIn("views/profile.js?v=20260408m", response.text)
         self.assertNotIn("views/admin.js?v=20260401x", response.text)
 
         response = self.client.get("/assets/js/views/bookings.js")
@@ -263,6 +265,19 @@ class AppSmokeTest(unittest.TestCase):
         self.assertIn("Refresh status", response.text)
         self.assertIn("Add to calendar", response.text)
         self.assertIn("downloadBookingCalendarFile(currentPaymentSuccessBooking)", response.text)
+
+        response = self.client.get("/assets/js/views/profile.js")
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertIn('window.prompt("Enter your password to delete this account.")', response.text)
+        self.assertIn('api.deleteProfile({ password: deletePassword })', response.text)
+
+        response = self.client.get("/assets/js/views/admin.js")
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertIn("Showing ${filteredBookings.length} of ${baseBookings.length}", response.text)
+        self.assertIn("Live booking queue", admin_page.text)
+        self.assertIn("Needs attention", response.text)
+        self.assertIn('window.prompt("Enter your admin password to delete this account.")', response.text)
+        self.assertIn("api.adminDeleteUser(button.dataset.userId, { admin_password: adminPassword })", response.text)
 
         response = self.client.get("/assets/js/views/rooms.js")
         self.assertEqual(response.status_code, 200, response.text)
@@ -1508,7 +1523,21 @@ class AppSmokeTest(unittest.TestCase):
         self.assertEqual(response.status_code, 201, response.text)
         booking = response.json()
 
-        response = self.client.delete("/api/users/me", headers=history_headers)
+        response = self.client.request(
+            "DELETE",
+            "/api/users/me",
+            headers=history_headers,
+            json={"password": "WrongPassword123!"},
+        )
+        self.assertEqual(response.status_code, 400, response.text)
+        self.assertEqual(response.json()["detail"], "Password is incorrect")
+
+        response = self.client.request(
+            "DELETE",
+            "/api/users/me",
+            headers=history_headers,
+            json={"password": "Password123!"},
+        )
         self.assertEqual(response.status_code, 204, response.text)
 
         response = self.client.get("/api/auth/me", headers=history_headers)
@@ -1540,7 +1569,21 @@ class AppSmokeTest(unittest.TestCase):
         self.assertEqual(response.status_code, 201, response.text)
         removable_user_id = response.json()["id"]
 
-        response = self.client.delete(f"/api/admin/users/{removable_user_id}", headers=admin_headers)
+        response = self.client.request(
+            "DELETE",
+            f"/api/admin/users/{removable_user_id}",
+            headers=admin_headers,
+            json={"admin_password": "WrongPassword123!"},
+        )
+        self.assertEqual(response.status_code, 400, response.text)
+        self.assertEqual(response.json()["detail"], "Admin password is incorrect")
+
+        response = self.client.request(
+            "DELETE",
+            f"/api/admin/users/{removable_user_id}",
+            headers=admin_headers,
+            json={"admin_password": "Password123!"},
+        )
         self.assertEqual(response.status_code, 204, response.text)
 
         response = self.client.get("/api/admin/users", headers=admin_headers)
