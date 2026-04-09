@@ -252,6 +252,8 @@ class AppSmokeTest(unittest.TestCase):
         self.assertIn("Mark paid manually as admin", response.text)
         self.assertIn('api.adminMarkBookingPaid(button.dataset.bookingId)', response.text)
         self.assertIn('window.confirm("Are you sure you want to cancel this booking?")', response.text)
+        self.assertIn("Add to calendar", response.text)
+        self.assertIn("downloadBookingCalendarFile(booking)", response.text)
 
         response = self.client.get("/assets/js/views/payment-success.js")
         self.assertEqual(response.status_code, 200, response.text)
@@ -259,6 +261,8 @@ class AppSmokeTest(unittest.TestCase):
         self.assertIn("Booking confirmed without Stripe", response.text)
         self.assertIn("Booking marked paid", response.text)
         self.assertIn("Refresh status", response.text)
+        self.assertIn("Add to calendar", response.text)
+        self.assertIn("downloadBookingCalendarFile(currentPaymentSuccessBooking)", response.text)
 
         response = self.client.get("/assets/js/views/rooms.js")
         self.assertEqual(response.status_code, 200, response.text)

@@ -1,8 +1,10 @@
+import { downloadBookingCalendarFile } from "../calendar.js?v=20260408k";
 import { elements, toggleHidden } from "../dom.js?v=20260401r";
 
 let reloadPaymentSuccessAction = null;
 let paymentSuccessPollTimer = null;
 let paymentSuccessPollCount = 0;
+let currentPaymentSuccessBooking = null;
 
 function stopPolling() {
   if (paymentSuccessPollTimer) {
@@ -113,6 +115,10 @@ export function initPaymentSuccessView(actions) {
     if (!button) {
       return;
     }
+    if (button.dataset.paymentSuccessAction === "download-calendar" && currentPaymentSuccessBooking) {
+      downloadBookingCalendarFile(currentPaymentSuccessBooking);
+      return;
+    }
     if (button.dataset.paymentSuccessAction === "refresh-status" && reloadPaymentSuccessAction) {
       await reloadPaymentSuccessAction("Checking payment status...");
     }
@@ -125,6 +131,7 @@ export function renderPaymentSuccessView(state) {
   }
 
   const booking = state.selectedBooking;
+  currentPaymentSuccessBooking = booking || null;
   const hasBooking = Boolean(booking);
   toggleHidden(elements.paymentSuccessEmpty, hasBooking);
   toggleHidden(elements.paymentSuccessCard, !hasBooking);
@@ -148,9 +155,11 @@ export function renderPaymentSuccessView(state) {
     <span class="pill">${formatBookingDate(booking.start_time)}</span>
   `;
   renderPaymentSuccessSummary(booking);
+  const canAddToCalendar = !["PendingPayment", "Cancelled", "Refunded"].includes(booking.status);
   elements.paymentSuccessActions.innerHTML = `
     <a class="primary-button ghost-link" href="/booking?id=${booking.id}">View booking</a>
     <a class="ghost-button ghost-link" href="/bookings">Back to bookings</a>
+    ${canAddToCalendar ? '<button class="ghost-button" type="button" data-payment-success-action="download-calendar">Add to calendar</button>' : ""}
     ${paymentStillProcessing ? '<button class="ghost-button" type="button" data-payment-success-action="refresh-status">Refresh status</button>' : ""}
   `;
 

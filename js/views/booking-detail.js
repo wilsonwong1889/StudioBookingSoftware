@@ -1,4 +1,5 @@
 import { api } from "../api.js?v=20260401r";
+import { downloadBookingCalendarFile } from "../calendar.js?v=20260408k";
 import { elements, toggleHidden } from "../dom.js?v=20260401r";
 import { setState } from "../state.js?v=20260401r";
 
@@ -326,6 +327,13 @@ export function initBookingDetailView(actions) {
         window.location.assign(buildPaymentSuccessUrl(booking.id).toString());
         return;
       }
+
+      if (action === "download-calendar") {
+        const booking = await api.getBooking(button.dataset.bookingId);
+        downloadBookingCalendarFile(booking);
+        setState({ message: "Calendar file downloaded." });
+        return;
+      }
     } catch (error) {
       setState({ message: error.message });
     }
@@ -371,12 +379,14 @@ export function renderBookingDetailView(state) {
 
   const canCancel = booking.status === "PendingPayment" || booking.status === "Paid";
   const canPay = booking.status === "PendingPayment";
+  const canAddToCalendar = !["Cancelled", "Refunded"].includes(booking.status);
   const settlementPill = isAdminWaivedPayment(booking)
     ? '<span class="pill">Admin free booking</span>'
     : isAdminManualPayment(booking)
       ? '<span class="pill">Manual payment noted</span>'
       : "";
   elements.bookingDetailActions.innerHTML = `
+    ${canAddToCalendar ? `<button class="ghost-button" type="button" data-booking-detail-action="download-calendar" data-booking-id="${booking.id}">Add to calendar</button>` : ""}
     ${canCancel ? `<button class="ghost-button" type="button" data-booking-detail-action="cancel" data-booking-id="${booking.id}">Cancel booking</button>` : ""}
     ${canPay ? `<button class="ghost-button" type="button" data-booking-detail-action="load-payment" data-booking-id="${booking.id}">Continue payment</button>` : ""}
   `;
