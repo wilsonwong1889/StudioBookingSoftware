@@ -514,8 +514,13 @@ function renderManualBookingStaffOptions(currentState) {
 
 function renderAdminBookingCard(booking) {
   const refundButton =
-    booking.status === "Paid" || booking.status === "Cancelled" || booking.status === "Completed"
+    booking.price_cents > 0 &&
+    (booking.status === "Paid" || booking.status === "Cancelled" || booking.status === "Completed")
       ? `<button class="ghost-button admin-booking-action" type="button" data-admin-action="refund" data-booking-id="${booking.id}" data-amount="${booking.price_cents}">Refund</button>`
+      : "";
+  const waivePaymentButton =
+    booking.status === "PendingPayment"
+      ? `<button class="ghost-button admin-booking-action" type="button" data-admin-action="waive-payment" data-booking-id="${booking.id}">Skip Stripe and mark free</button>`
       : "";
   const checkInButton =
     booking.status === "Paid" && !booking.checked_in_at
@@ -555,7 +560,7 @@ function renderAdminBookingCard(booking) {
       ${staffAssignments.length ? `<p><strong>Staff:</strong> ${staffAssignments.map((assignment) => assignment.name).join(", ")}</p>` : '<p><strong>Staff:</strong> None attached</p>'}
       ${booking.cancellation_reason ? `<p><strong>Cancellation reason:</strong> ${booking.cancellation_reason}</p>` : ""}
       ${booking.note ? `<p><strong>Notes:</strong> ${booking.note}</p>` : ""}
-      ${(checkInButton || refundButton) ? `<div class="room-actions">${checkInButton}${refundButton}</div>` : ""}
+      ${(waivePaymentButton || checkInButton || refundButton) ? `<div class="room-actions">${waivePaymentButton}${checkInButton}${refundButton}</div>` : ""}
     </article>
   `;
 }
@@ -982,6 +987,18 @@ export function initAdminView(actions) {
     }
 
     try {
+      if (button.dataset.adminAction === "waive-payment") {
+        const confirmed = window.confirm("Skip Stripe and mark this booking free?");
+        if (!confirmed) {
+          return;
+        }
+        setState({ message: "Marking booking free..." });
+        await api.adminWaiveBookingPayment(button.dataset.bookingId);
+        adminSearchResults = null;
+        await actions.refreshAll("Booking marked paid without Stripe.");
+        return;
+      }
+
       if (button.dataset.adminAction === "refund") {
         setState({ message: "Processing refund..." });
         await api.adminRefundBooking(button.dataset.bookingId, {

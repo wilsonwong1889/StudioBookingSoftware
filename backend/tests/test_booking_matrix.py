@@ -112,6 +112,7 @@ class BookingServiceMatrixTest(unittest.TestCase):
             normalize_booking_start,
             process_refund,
             serialize_admin_booking,
+            waive_booking_payment,
             validate_booking_window,
         )
         from app.services.payment_service import PaymentConfigurationError
@@ -164,6 +165,7 @@ class BookingServiceMatrixTest(unittest.TestCase):
         cls.normalize_booking_start = staticmethod(normalize_booking_start)
         cls.process_refund = staticmethod(process_refund)
         cls.serialize_admin_booking = staticmethod(serialize_admin_booking)
+        cls.waive_booking_payment = staticmethod(waive_booking_payment)
         cls.validate_booking_window = staticmethod(validate_booking_window)
         cls.PaymentConfigurationError = PaymentConfigurationError
         cls.memory_holds = reservation_service._memory_holds
@@ -925,6 +927,38 @@ class BookingServiceMatrixTest(unittest.TestCase):
 
             self.assertEqual(paid.status, "Paid")
             self.assertIsNotNone(paid.confirmed_at)
+
+    def test_139a_waive_booking_payment_marks_booking_paid_for_free(self) -> None:
+        with self.SessionLocal() as db:
+            admin = self._create_user(db, email_prefix="admin", is_admin=True)
+            user = self._create_user(db)
+            room = self._create_room(db)
+            booking = self._create_pending_booking(
+                db,
+                user=user,
+                room=room,
+                start_time=self._aware_time(day=8, hour=11),
+            )
+            original_price_cents = booking.price_cents
+
+            updated = self.waive_booking_payment(db, str(booking.id), admin)
+            db.refresh(updated)
+
+            self.assertEqual(updated.status, "Paid")
+            self.assertEqual(updated.price_cents, 0)
+            self.assertIsNotNone(updated.confirmed_at)
+            self.assertTrue(updated.payment_intent_id.startswith("admin_waived_"))
+
+            audit_logs = (
+                db.query(self.AuditLog)
+                .filter(self.AuditLog.booking_id == booking.id)
+                .order_by(self.AuditLog.created_at.asc())
+                .all()
+            )
+            self.assertEqual([audit.action for audit in audit_logs], ["payment_confirmed", "payment_waived_by_admin"])
+            waived_audit = audit_logs[-1]
+            self.assertEqual(waived_audit.actor_id, admin.id)
+            self.assertEqual(waived_audit.details["original_price_cents"], original_price_cents)
 
     def test_140_webhook_success_is_idempotent_for_paid_booking(self) -> None:
         with self.SessionLocal() as db:

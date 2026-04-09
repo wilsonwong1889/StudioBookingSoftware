@@ -40,6 +40,7 @@ from app.services.booking_service import (
     process_refund,
     StaffAvailabilityError,
     StaffSelectionError,
+    waive_booking_payment,
     clear_bookings_for_admin_day,
     clear_past_bookings_for_admin,
 )
@@ -334,6 +335,19 @@ def admin_check_in_booking(
 ):
     try:
         return check_in_booking(db, booking_id, admin)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/bookings/{booking_id}/waive-payment", response_model=BookingOut)
+def admin_waive_booking_payment(
+    booking_id: str,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+    _: None = Depends(admin_rate_limit),
+):
+    try:
+        return waive_booking_payment(db, booking_id, admin)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

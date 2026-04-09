@@ -1,7 +1,7 @@
 import { api } from "./api.js?v=20260401r";
 import { CURRENT_PAGE, getSearchParam } from "./config.js?v=20260401r";
 import { setState, state, subscribe, persistToken } from "./state.js?v=20260401r";
-import { initAdminView, renderAdminView } from "./views/admin.js?v=20260401x";
+import { initAdminView, renderAdminView } from "./views/admin.js?v=20260408d";
 import { initAuthView, renderAuthView } from "./views/auth.js?v=20260401y";
 import { initBookingDetailView, renderBookingDetailView } from "./views/booking-detail.js?v=20260408c";
 import { initBookingsView, renderBookingsView } from "./views/bookings.js?v=20260401w";

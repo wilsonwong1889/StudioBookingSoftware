@@ -220,6 +220,11 @@ export const api = {
       method: "POST",
     });
   },
+  adminWaiveBookingPayment(bookingId) {
+    return request(`/api/admin/bookings/${bookingId}/waive-payment`, {
+      method: "POST",
+    });
+  },
   adminDeleteUser(userId) {
     return request(`/api/admin/users/${userId}`, {
       method: "DELETE",

@@ -736,6 +736,33 @@ def process_refund(db: Session, booking_id: str, admin: User, payload: RefundCre
     return refund
 
 
+def waive_booking_payment(db: Session, booking_id: str, admin: User) -> Booking:
+    booking = db.query(Booking).filter(Booking.id == booking_id).first()
+    if not booking:
+        raise ValueError("Booking not found")
+    if booking.status != "PendingPayment":
+        raise ValueError("Only pending bookings can skip Stripe payment")
+
+    original_price_cents = booking.price_cents
+    booking.price_cents = 0
+    waived_payment_reference = f"admin_waived_{uuid4().hex[:24]}"
+    booking = mark_booking_paid(db, booking, waived_payment_reference)
+    create_audit_log(
+        db,
+        actor_id=admin.id,
+        booking_id=booking.id,
+        action="payment_waived_by_admin",
+        details={
+            "original_price_cents": original_price_cents,
+            "payment_intent_id": waived_payment_reference,
+            "reason": "Admin skipped Stripe payment for testing",
+        },
+    )
+    db.commit()
+    db.refresh(booking)
+    return booking
+
+
 def check_in_booking(db: Session, booking_id: str, admin: User) -> Booking:
     booking = db.query(Booking).filter(Booking.id == booking_id).first()
     if not booking:
