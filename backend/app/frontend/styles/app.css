@@ -1211,6 +1211,13 @@ select:focus {
   color: var(--muted);
 }
 
+.booking-history-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(180px, 1fr);
+  gap: 14px;
+  padding: 0 22px 18px;
+}
+
 .reserve-page-grid {
   align-items: start;
 }

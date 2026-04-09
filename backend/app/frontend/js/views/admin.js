@@ -518,6 +518,10 @@ function renderAdminBookingCard(booking) {
     (booking.status === "Paid" || booking.status === "Cancelled" || booking.status === "Completed")
       ? `<button class="ghost-button admin-booking-action" type="button" data-admin-action="refund" data-booking-id="${booking.id}" data-amount="${booking.price_cents}">Refund</button>`
       : "";
+  const manualPaidButton =
+    booking.status === "PendingPayment" && booking.price_cents > 0
+      ? `<button class="ghost-button admin-booking-action" type="button" data-admin-action="mark-paid" data-booking-id="${booking.id}">Mark paid manually</button>`
+      : "";
   const waivePaymentButton =
     booking.status === "PendingPayment"
       ? `<button class="ghost-button admin-booking-action" type="button" data-admin-action="waive-payment" data-booking-id="${booking.id}">Skip Stripe and mark free</button>`
@@ -561,7 +565,7 @@ function renderAdminBookingCard(booking) {
       ${staffAssignments.length ? `<p><strong>Staff:</strong> ${staffAssignments.map((assignment) => assignment.name).join(", ")}</p>` : '<p><strong>Staff:</strong> None attached</p>'}
       ${booking.cancellation_reason ? `<p><strong>Cancellation reason:</strong> ${booking.cancellation_reason}</p>` : ""}
       ${booking.note ? `<p><strong>Notes:</strong> ${booking.note}</p>` : ""}
-      ${(waivePaymentButton || checkInButton || refundButton) ? `<div class="room-actions">${waivePaymentButton}${checkInButton}${refundButton}</div>` : ""}
+      ${(manualPaidButton || waivePaymentButton || checkInButton || refundButton) ? `<div class="room-actions">${manualPaidButton}${waivePaymentButton}${checkInButton}${refundButton}</div>` : ""}
     </article>
   `;
 }
@@ -997,6 +1001,18 @@ export function initAdminView(actions) {
         await api.adminWaiveBookingPayment(button.dataset.bookingId);
         adminSearchResults = null;
         await actions.refreshAll("Booking marked paid without Stripe.");
+        return;
+      }
+
+      if (button.dataset.adminAction === "mark-paid") {
+        const confirmed = window.confirm("Mark this booking paid manually?");
+        if (!confirmed) {
+          return;
+        }
+        setState({ message: "Marking booking paid manually..." });
+        await api.adminMarkBookingPaid(button.dataset.bookingId);
+        adminSearchResults = null;
+        await actions.refreshAll("Booking marked paid manually.");
         return;
       }
 

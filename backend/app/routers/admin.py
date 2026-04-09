@@ -37,6 +37,7 @@ from app.services.booking_service import (
     get_admin_analytics_summary,
     list_recent_admin_activity,
     lookup_bookings_for_admin,
+    mark_booking_paid_manually,
     process_refund,
     StaffAvailabilityError,
     StaffSelectionError,
@@ -374,6 +375,19 @@ def admin_waive_booking_payment(
 ):
     try:
         return waive_booking_payment(db, booking_id, admin)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/bookings/{booking_id}/mark-paid", response_model=BookingOut)
+def admin_mark_booking_paid(
+    booking_id: str,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+    _: None = Depends(admin_rate_limit),
+):
+    try:
+        return mark_booking_paid_manually(db, booking_id, admin)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

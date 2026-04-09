@@ -140,6 +140,22 @@
                 </div>
                 <span id="recent-bookings-count" class="pill">0 bookings</span>
               </summary>
+              <div class="booking-history-toolbar">
+                <label class="inline-field">
+                  <span>Search</span>
+                  <input id="recent-bookings-search" type="search" placeholder="Booking code, room, note" />
+                </label>
+                <label class="inline-field">
+                  <span>Status</span>
+                  <select id="recent-bookings-status-filter">
+                    <option value="all">All recent statuses</option>
+                    <option value="Completed">Completed / checked in</option>
+                    <option value="Paid">Paid</option>
+                    <option value="Refunded">Refunded</option>
+                    <option value="Cancelled">Cancelled</option>
+                  </select>
+                </label>
+              </div>
               <div id="recent-bookings-list" class="booking-list booking-list-secondary"></div>
             </details>
           </div>
@@ -165,6 +181,6 @@
       </section>
     </div>
 
-    <script type="module" src="/assets/js/main.js?v=20260408g"></script>
+    <script type="module" src="/assets/js/main.js?v=20260408j"></script>
   </body>
 </html>

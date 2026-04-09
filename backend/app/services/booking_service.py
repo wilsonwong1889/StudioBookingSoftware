@@ -763,6 +763,31 @@ def waive_booking_payment(db: Session, booking_id: str, admin: User) -> Booking:
     return booking
 
 
+def mark_booking_paid_manually(db: Session, booking_id: str, admin: User) -> Booking:
+    booking = db.query(Booking).filter(Booking.id == booking_id).first()
+    if not booking:
+        raise ValueError("Booking not found")
+    if booking.status != "PendingPayment":
+        raise ValueError("Only pending bookings can be marked paid manually")
+
+    manual_payment_reference = f"admin_manual_paid_{uuid4().hex[:24]}"
+    booking = mark_booking_paid(db, booking, manual_payment_reference)
+    create_audit_log(
+        db,
+        actor_id=admin.id,
+        booking_id=booking.id,
+        action="payment_marked_paid_by_admin",
+        details={
+            "price_cents": booking.price_cents,
+            "payment_intent_id": manual_payment_reference,
+            "reason": "Admin marked booking paid without Stripe checkout",
+        },
+    )
+    db.commit()
+    db.refresh(booking)
+    return booking
+
+
 def check_in_booking(db: Session, booking_id: str, admin: User) -> Booking:
     booking = db.query(Booking).filter(Booking.id == booking_id).first()
     if not booking:

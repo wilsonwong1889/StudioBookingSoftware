@@ -1,12 +1,12 @@
 import { api } from "./api.js?v=20260401r";
 import { CURRENT_PAGE, getSearchParam } from "./config.js?v=20260401r";
 import { setState, state, subscribe, persistToken } from "./state.js?v=20260401r";
-import { initAdminView, renderAdminView } from "./views/admin.js?v=20260408f";
+import { initAdminView, renderAdminView } from "./views/admin.js?v=20260408j";
 import { initAuthView, renderAuthView } from "./views/auth.js?v=20260401y";
-import { initBookingDetailView, renderBookingDetailView } from "./views/booking-detail.js?v=20260408h";
-import { initBookingsView, renderBookingsView } from "./views/bookings.js?v=20260408g";
+import { initBookingDetailView, renderBookingDetailView } from "./views/booking-detail.js?v=20260408j";
+import { initBookingsView, renderBookingsView } from "./views/bookings.js?v=20260408j";
 import { initInfoView, renderInfoView } from "./views/info.js?v=20260401r";
-import { initPaymentSuccessView, renderPaymentSuccessView } from "./views/payment-success.js?v=20260408c";
+import { initPaymentSuccessView, renderPaymentSuccessView } from "./views/payment-success.js?v=20260408j";
 import { initProfileView, renderProfileView } from "./views/profile.js?v=20260401y";
 import { initRoomBookingView, renderRoomBookingView } from "./views/room-booking.js?v=20260401u";
 import { initRoomDetailView, renderRoomDetailView } from "./views/room-detail.js?v=20260401r";

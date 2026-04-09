@@ -6,6 +6,8 @@ import { setState, state } from "../state.js?v=20260401r";
 const MIN_DURATION_MINUTES = 60;
 const MAX_DURATION_MINUTES = 300;
 let selectedStaffIds = new Set();
+let recentBookingSearchQuery = "";
+let recentBookingStatusFilter = "all";
 
 function todayString() {
   return new Date().toISOString().slice(0, 10);
@@ -85,6 +87,10 @@ function formatBookingCount(count) {
   return `${count} booking${count === 1 ? "" : "s"}`;
 }
 
+function getRecentBookingSearchValue() {
+  return recentBookingSearchQuery.trim().toLowerCase();
+}
+
 function getRecentBookingSectionKey(booking) {
   if (booking.status === "Completed") {
     return "Completed";
@@ -155,6 +161,30 @@ function renderRecentBookingSections(bookings) {
       `,
     )
     .join("");
+}
+
+function getFilteredRecentBookings(bookings) {
+  const normalizedQuery = getRecentBookingSearchValue();
+  return bookings.filter((booking) => {
+    if (recentBookingStatusFilter !== "all" && booking.status !== recentBookingStatusFilter) {
+      return false;
+    }
+    if (!normalizedQuery) {
+      return true;
+    }
+
+    const searchBlob = [
+      booking.booking_code,
+      booking.room_name,
+      booking.note,
+      booking.status,
+      formatStatusLabel(booking.status),
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return searchBlob.includes(normalizedQuery);
+  });
 }
 
 function buildDurationValues(limitMinutes = MAX_DURATION_MINUTES) {
@@ -645,12 +675,29 @@ export function initBookingsView(actions) {
     }
 
     try {
+      const confirmed = window.confirm("Are you sure you want to cancel this booking?");
+      if (!confirmed) {
+        return;
+      }
       setState({ message: "Cancelling booking..." });
       await api.cancelBooking(button.dataset.bookingId, { reason: "Cancelled by user" });
       await actions.refreshAvailabilityAndBookings("Booking cancelled.");
     } catch (error) {
       setState({ message: error.message });
     }
+  });
+
+  const recentBookingsSearch = document.getElementById("recent-bookings-search");
+  const recentBookingsStatus = document.getElementById("recent-bookings-status-filter");
+
+  recentBookingsSearch?.addEventListener("input", (event) => {
+    recentBookingSearchQuery = event.target.value || "";
+    renderBookingsView(state);
+  });
+
+  recentBookingsStatus?.addEventListener("change", (event) => {
+    recentBookingStatusFilter = event.target.value || "all";
+    renderBookingsView(state);
   });
 }
 
@@ -711,6 +758,7 @@ export function renderBookingsView(currentState) {
   const recentBookings = currentState.bookings
     .filter((booking) => booking.status !== "PendingPayment")
     .sort((left, right) => getRecentBookingTimeValue(right) - getRecentBookingTimeValue(left));
+  const filteredRecentBookings = getFilteredRecentBookings(recentBookings);
 
   if (elements.pendingBookingsCount) {
     elements.pendingBookingsCount.classList.toggle("hidden", !isSignedIn);
@@ -718,7 +766,10 @@ export function renderBookingsView(currentState) {
   }
 
   if (elements.recentBookingsCount) {
-    elements.recentBookingsCount.textContent = formatBookingCount(recentBookings.length);
+    elements.recentBookingsCount.textContent =
+      filteredRecentBookings.length === recentBookings.length
+        ? formatBookingCount(filteredRecentBookings.length)
+        : `${formatBookingCount(filteredRecentBookings.length)} of ${formatBookingCount(recentBookings.length)}`;
   }
 
   if (!isSignedIn) {
@@ -755,6 +806,12 @@ export function renderBookingsView(currentState) {
     if (!recentBookings.length) {
       elements.recentBookingsShell.open = false;
     }
-    elements.recentBookingsList.innerHTML = renderRecentBookingSections(recentBookings);
+    elements.recentBookingsList.innerHTML = filteredRecentBookings.length
+      ? renderRecentBookingSections(filteredRecentBookings)
+      : `
+        <div class="empty-state">
+          No recent bookings match the current search or status filter.
+        </div>
+      `;
   }
 }

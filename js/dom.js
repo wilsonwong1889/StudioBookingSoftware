@@ -129,6 +129,7 @@ export const elements = {
   paymentSuccessTitle: document.getElementById("payment-success-title"),
   paymentSuccessCopy: document.getElementById("payment-success-copy"),
   paymentSuccessMeta: document.getElementById("payment-success-meta"),
+  paymentSuccessSummary: document.getElementById("payment-success-summary"),
   paymentSuccessActions: document.getElementById("payment-success-actions"),
   reserveEmpty: document.getElementById("reserve-empty"),
   reservePlannerPanel: document.getElementById("reserve-planner-panel"),

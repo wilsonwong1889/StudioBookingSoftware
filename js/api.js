@@ -233,6 +233,11 @@ export const api = {
       method: "POST",
     });
   },
+  adminMarkBookingPaid(bookingId) {
+    return request(`/api/admin/bookings/${bookingId}/mark-paid`, {
+      method: "POST",
+    });
+  },
   adminDeleteUser(userId) {
     return request(`/api/admin/users/${userId}`, {
       method: "DELETE",
