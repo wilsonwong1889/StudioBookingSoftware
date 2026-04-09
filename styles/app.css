@@ -1476,6 +1476,23 @@ select:focus {
   gap: 8px;
 }
 
+.admin-subpage-nav {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 260px);
+  gap: 16px;
+  align-items: end;
+}
+
+.admin-subpage-switcher {
+  flex-wrap: wrap;
+}
+
+.admin-subpage-picker,
+.admin-subpage-stack {
+  display: grid;
+  gap: 12px;
+}
+
 .admin-tab-panel {
   display: grid;
   gap: 18px;
@@ -2199,6 +2216,7 @@ select:focus {
   .signal-ribbon,
   .admin-grid,
   .admin-workspace-nav,
+  .admin-subpage-nav,
   .admin-bookings-toolbar,
   .admin-bookings-workbench,
   .admin-booking-summary-grid,

@@ -1,7 +1,7 @@
 import { api } from "./api.js?v=20260401r";
 import { CURRENT_PAGE, getSearchParam } from "./config.js?v=20260401r";
 import { setState, state, subscribe, persistToken } from "./state.js?v=20260401r";
-import { initAdminView, renderAdminView } from "./views/admin.js?v=20260408n";
+import { initAdminView, renderAdminView } from "./views/admin.js?v=20260408q";
 import { initAuthView, renderAuthView } from "./views/auth.js?v=20260401ab";
 import { initBookingDetailView, renderBookingDetailView } from "./views/booking-detail.js?v=20260408k";
 import { initBookingsView, renderBookingsView } from "./views/bookings.js?v=20260408j";
@@ -10,7 +10,7 @@ import { initPaymentSuccessView, renderPaymentSuccessView } from "./views/paymen
 import { initProfileView, renderProfileView } from "./views/profile.js?v=20260408m";
 import { initRoomBookingView, renderRoomBookingView } from "./views/room-booking.js?v=20260401u";
 import { initRoomDetailView, renderRoomDetailView } from "./views/room-detail.js?v=20260401r";
-import { initRoomsView, renderRoomsView } from "./views/rooms.js?v=20260408e";
+import { initRoomsView, renderRoomsView } from "./views/rooms.js?v=20260408q";
 import { initStaffDirectoryView, renderStaffDirectoryView } from "./views/staff-directory.js?v=20260401v";
 import { renderStatus } from "./views/status.js?v=20260401r";
 

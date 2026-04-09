@@ -1,5 +1,5 @@
 import { api } from "../api.js?v=20260401r";
-import { elements } from "../dom.js?v=20260408n";
+import { elements } from "../dom.js?v=20260408p";
 import { setState } from "../state.js?v=20260401r";
 
 let editingStaffProfileId = null;
@@ -9,6 +9,14 @@ let selectedAdminScheduleRoomId = "all";
 let selectedAdminAccountId = null;
 let adminSearchResults = null;
 let selectedAdminBookingQuickFilter = "all";
+const DEFAULT_ADMIN_SUBPAGES = {
+  overview: "dashboard",
+  accounts: "directory",
+  bookings: "schedule",
+  staff: "editor",
+  rooms: "editor",
+};
+const activeAdminSubpages = { ...DEFAULT_ADMIN_SUBPAGES };
 
 const TEST_CASE_HEALTH_META = {
   working: {
@@ -68,6 +76,26 @@ function setActiveAdminTab(tab) {
   if (elements.adminWorkspaceSelect && elements.adminWorkspaceSelect.value !== tab) {
     elements.adminWorkspaceSelect.value = tab;
   }
+}
+
+function setActiveAdminSubpage(group, subpage) {
+  const nextSubpage = subpage || DEFAULT_ADMIN_SUBPAGES[group] || "overview";
+  activeAdminSubpages[group] = nextSubpage;
+
+  document.querySelectorAll(`[data-admin-subpage-button="${group}"]`).forEach((button) => {
+    const isActive = button.dataset.adminSubpage === nextSubpage;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-selected", isActive ? "true" : "false");
+  });
+
+  const select = document.querySelector(`[data-admin-subpage-select="${group}"]`);
+  if (select && select.value !== nextSubpage) {
+    select.value = nextSubpage;
+  }
+
+  document.querySelectorAll(`[data-admin-subpage-panel="${group}"]`).forEach((panel) => {
+    panel.classList.toggle("hidden", panel.dataset.adminSubpage !== nextSubpage);
+  });
 }
 
 function toIsoStringFromLocal(value) {
@@ -1123,6 +1151,7 @@ export function initAdminView(actions) {
         booking_code: form.get("booking_code"),
         status: form.get("status"),
       });
+      setActiveAdminSubpage("bookings", "queue");
       renderAdminView(actions.getState());
       setState({ message: "Admin booking results loaded." });
     } catch (error) {
@@ -1133,6 +1162,7 @@ export function initAdminView(actions) {
   elements.adminBookingClearButton?.addEventListener("click", () => {
       adminSearchResults = null;
       selectedAdminBookingQuickFilter = "all";
+      setActiveAdminSubpage("bookings", "queue");
       elements.adminBookingLookupForm?.reset();
       renderAdminView(actions.getState());
       setState({ message: "Booking filters cleared." });
@@ -1189,6 +1219,7 @@ export function initAdminView(actions) {
       setState({ message: "Clearing bookings for selected day..." });
       const result = await api.adminClearBookingsForDay({ date: targetDate });
       adminSearchResults = null;
+      setActiveAdminSubpage("bookings", "schedule");
       await actions.refreshAll(`${result.deleted_count} booking${result.deleted_count === 1 ? "" : "s"} cleared for ${targetDate}.`);
     } catch (error) {
       setState({ message: error.message });
@@ -1205,6 +1236,7 @@ export function initAdminView(actions) {
       setState({ message: "Clearing past bookings..." });
       const result = await api.adminClearPastBookings();
       adminSearchResults = null;
+      setActiveAdminSubpage("bookings", "cleanup");
       await actions.refreshAll(`${result.deleted_count} past booking${result.deleted_count === 1 ? "" : "s"} cleared.`);
     } catch (error) {
       setState({ message: error.message });
@@ -1214,6 +1246,18 @@ export function initAdminView(actions) {
   elements.adminTabs?.forEach((button) => {
     button.addEventListener("click", () => {
       setActiveAdminTab(button.dataset.adminTab);
+    });
+  });
+
+  document.querySelectorAll("[data-admin-subpage-button]").forEach((button) => {
+    button.addEventListener("click", () => {
+      setActiveAdminSubpage(button.dataset.adminSubpageButton, button.dataset.adminSubpage);
+    });
+  });
+
+  document.querySelectorAll("[data-admin-subpage-select]").forEach((select) => {
+    select.addEventListener("change", () => {
+      setActiveAdminSubpage(select.dataset.adminSubpageSelect, select.value);
     });
   });
 
@@ -1228,6 +1272,7 @@ export function initAdminView(actions) {
     }
 
     selectedAdminAccountId = button.dataset.userId;
+    setActiveAdminSubpage("accounts", "detail");
     renderAdminView(actions.getState());
   });
 
@@ -1305,6 +1350,7 @@ export function initAdminView(actions) {
       }
 
       resetStaffProfileForm();
+      setActiveAdminSubpage("staff", "editor");
       await actions.refreshAll("Staff profile saved.");
     } catch (error) {
       setState({ message: error.message });
@@ -1331,6 +1377,7 @@ export function initAdminView(actions) {
       }
       adminSearchResults = null;
       renderManualBookingStaffOptions(actions.getState());
+      setActiveAdminSubpage("bookings", "queue");
       await actions.refreshAll("Manual booking created.");
     } catch (error) {
       setState({ message: error.message });
@@ -1352,6 +1399,7 @@ export function initAdminView(actions) {
         setState({ message: "Marking booking free..." });
         await api.adminWaiveBookingPayment(button.dataset.bookingId);
         adminSearchResults = null;
+        setActiveAdminSubpage("bookings", "queue");
         await actions.refreshAll("Booking marked paid without Stripe.");
         return;
       }
@@ -1364,6 +1412,7 @@ export function initAdminView(actions) {
         setState({ message: "Marking booking paid manually..." });
         await api.adminMarkBookingPaid(button.dataset.bookingId);
         adminSearchResults = null;
+        setActiveAdminSubpage("bookings", "queue");
         await actions.refreshAll("Booking marked paid manually.");
         return;
       }
@@ -1375,6 +1424,7 @@ export function initAdminView(actions) {
           reason: "Admin refund",
         });
         adminSearchResults = null;
+        setActiveAdminSubpage("bookings", "queue");
         await actions.refreshAll("Refund processed.");
         return;
       }
@@ -1383,6 +1433,7 @@ export function initAdminView(actions) {
         setState({ message: "Marking guest as arrived..." });
         await api.adminCheckInBooking(button.dataset.bookingId);
         adminSearchResults = null;
+        setActiveAdminSubpage("bookings", "queue");
         await actions.refreshAll("Guest checked in.");
       }
     } catch (error) {
@@ -1406,6 +1457,7 @@ export function initAdminView(actions) {
           return;
         }
         populateStaffProfileForm(profile);
+        setActiveAdminSubpage("staff", "editor");
         setState({ message: `Editing ${profile.name}.` });
         return;
       }
@@ -1459,6 +1511,15 @@ export function initAdminView(actions) {
     } catch (error) {
       setState({ message: error.message });
     }
+  });
+
+  window.addEventListener("admin-subpage-request", (event) => {
+    const detail = event.detail || {};
+    if (!detail.group || !detail.subpage) {
+      return;
+    }
+    setActiveAdminTab(detail.group);
+    setActiveAdminSubpage(detail.group, detail.subpage);
   });
 }
 
@@ -1516,6 +1577,7 @@ export function renderAdminView(currentState) {
 
   if (!isAdmin) {
     setActiveAdminTab("overview");
+    Object.assign(activeAdminSubpages, DEFAULT_ADMIN_SUBPAGES);
     adminSearchResults = null;
     elements.adminAnalyticsGrid && (elements.adminAnalyticsGrid.innerHTML = "");
     elements.adminRoomBreakdown && (elements.adminRoomBreakdown.innerHTML = "");
@@ -1542,6 +1604,9 @@ export function renderAdminView(currentState) {
   }
 
   setActiveAdminTab(activeAdminTab);
+  Object.entries(activeAdminSubpages).forEach(([group, subpage]) => {
+    setActiveAdminSubpage(group, subpage);
+  });
   renderAdminDaySummary(currentState);
   renderAdminDaySchedule(currentState);
 

@@ -421,6 +421,11 @@ export function initRoomsView(actions) {
         }
           populateRoomForm(room);
           renderCreateRoomStaffOptions(state);
+          window.dispatchEvent(
+            new CustomEvent("admin-subpage-request", {
+              detail: { group: "rooms", subpage: "editor" },
+            }),
+          );
           elements.roomForm?.scrollIntoView({ behavior: "smooth", block: "start" });
           setState({ message: `Editing ${room.name}.` });
           return;

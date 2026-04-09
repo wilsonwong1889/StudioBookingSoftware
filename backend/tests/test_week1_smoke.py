@@ -205,10 +205,13 @@ class AppSmokeTest(unittest.TestCase):
         self.assertIn("admin-panel-qa", admin_page.text)
         self.assertIn("admin-booking-quick-summary", admin_page.text)
         self.assertIn("admin-booking-quick-filters", admin_page.text)
+        self.assertIn('data-admin-subpage-group="bookings"', admin_page.text)
+        self.assertIn('data-admin-subpage-group="staff"', admin_page.text)
+        self.assertIn('data-admin-subpage-group="rooms"', admin_page.text)
         self.assertIn("admin-accounts-list", admin_page.text)
         self.assertIn("admin-test-case-summary", admin_page.text)
         self.assertIn("admin-test-cases-list", admin_page.text)
-        self.assertIn("20260408n", admin_page.text)
+        self.assertIn("20260408q", admin_page.text)
         self.assertLess(admin_page.text.index("Room management"), admin_page.text.index("Backend test cases"))
 
         response = self.client.get("/assets/styles/app.css")
@@ -224,12 +227,12 @@ class AppSmokeTest(unittest.TestCase):
         self.assertIn("refreshSession", response.text)
         self.assertIn('./api.js?v=20260401r', response.text)
         self.assertIn('./state.js?v=20260401r', response.text)
-        self.assertIn("views/admin.js?v=20260408n", response.text)
+        self.assertIn("views/admin.js?v=20260408q", response.text)
         self.assertIn("views/booking-detail.js?v=", response.text)
         self.assertIn("views/payment-success.js?v=", response.text)
         self.assertIn("views/bookings.js?v=20260408j", response.text)
         self.assertIn("views/room-booking.js?v=20260401u", response.text)
-        self.assertIn("views/rooms.js?v=20260408e", response.text)
+        self.assertIn("views/rooms.js?v=20260408q", response.text)
         self.assertIn("views/room-detail.js?v=20260401r", response.text)
         self.assertIn("views/auth.js?v=20260401ab", response.text)
         self.assertIn("views/profile.js?v=20260408m", response.text)
@@ -273,6 +276,10 @@ class AppSmokeTest(unittest.TestCase):
 
         response = self.client.get("/assets/js/views/admin.js")
         self.assertEqual(response.status_code, 200, response.text)
+        self.assertIn("setActiveAdminSubpage", response.text)
+        self.assertIn('document.querySelectorAll("[data-admin-subpage-button]")', response.text)
+        self.assertIn('setActiveAdminSubpage("bookings", "queue")', response.text)
+        self.assertIn('setActiveAdminSubpage("accounts", "detail")', response.text)
         self.assertIn("Showing ${filteredBookings.length} of ${baseBookings.length}", response.text)
         self.assertIn("Live booking queue", admin_page.text)
         self.assertIn("Needs attention", response.text)
@@ -281,6 +288,7 @@ class AppSmokeTest(unittest.TestCase):
 
         response = self.client.get("/assets/js/views/rooms.js")
         self.assertEqual(response.status_code, 200, response.text)
+        self.assertIn('detail: { group: "rooms", subpage: "editor" }', response.text)
         self.assertIn('href="/bookings?room=${room.id}"', response.text)
 
         signup_payload = {

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin | StudioBookingSoftware</title>
-    <link rel="stylesheet" href="/assets/styles/app.css?v=20260408n" />
+    <link rel="stylesheet" href="/assets/styles/app.css?v=20260408q" />
   </head>
   <body data-page="admin">
     <div class="site-frame">
@@ -92,7 +92,21 @@
                 <p class="panel-copy">Use this workspace for the high-level performance view and recent operational activity.</p>
               </div>
 
-              <section id="admin-analytics-panel" class="hidden admin-analytics-panel">
+              <div class="admin-subpage-nav" data-admin-subpage-group="overview">
+                <div class="auth-switcher admin-subpage-switcher" role="tablist" aria-label="Overview tools">
+                  <button class="tab-button active" type="button" data-admin-subpage-button="overview" data-admin-subpage="dashboard">Dashboard</button>
+                  <button class="tab-button" type="button" data-admin-subpage-button="overview" data-admin-subpage="activity">Activity</button>
+                </div>
+                <label class="inline-field admin-subpage-picker">
+                  <span>View</span>
+                  <select data-admin-subpage-select="overview">
+                    <option value="dashboard">Dashboard</option>
+                    <option value="activity">Activity</option>
+                  </select>
+                </label>
+              </div>
+
+              <section id="admin-analytics-panel" class="hidden admin-analytics-panel admin-subpage-panel" data-admin-subpage-panel="overview" data-admin-subpage="dashboard">
                 <div class="panel-header">
                   <p class="panel-kicker">Snapshot</p>
                   <h3>Booking performance</h3>
@@ -109,7 +123,7 @@
                 </div>
               </section>
 
-              <section id="admin-activity-panel" class="hidden admin-activity-panel">
+              <section id="admin-activity-panel" class="hidden admin-activity-panel admin-subpage-panel" data-admin-subpage-panel="overview" data-admin-subpage="activity">
                 <div class="panel-header">
                   <p class="panel-kicker">Activity</p>
                   <h3>Recent actions</h3>
@@ -126,8 +140,22 @@
                 <p class="panel-copy">Review account details, billing information, and booking activity. Card details stay in Stripe and are not stored in this app.</p>
               </div>
 
-              <section class="admin-accounts-shell">
-                <div class="admin-account-column">
+              <div class="admin-subpage-nav" data-admin-subpage-group="accounts">
+                <div class="auth-switcher admin-subpage-switcher" role="tablist" aria-label="Account tools">
+                  <button class="tab-button active" type="button" data-admin-subpage-button="accounts" data-admin-subpage="directory">Directory</button>
+                  <button class="tab-button" type="button" data-admin-subpage-button="accounts" data-admin-subpage="detail">Profile detail</button>
+                </div>
+                <label class="inline-field admin-subpage-picker">
+                  <span>View</span>
+                  <select data-admin-subpage-select="accounts">
+                    <option value="directory">Directory</option>
+                    <option value="detail">Profile detail</option>
+                  </select>
+                </label>
+              </div>
+
+              <section class="admin-subpage-stack">
+                <div class="admin-account-column admin-subpage-panel" data-admin-subpage-panel="accounts" data-admin-subpage="directory">
                   <div class="panel-header">
                     <p class="panel-kicker">Directory</p>
                     <h3>All accounts</h3>
@@ -136,7 +164,7 @@
                   <div id="admin-accounts-list" class="admin-accounts-list"></div>
                 </div>
 
-                <div class="admin-account-column">
+                <div class="admin-account-column admin-subpage-panel hidden" data-admin-subpage-panel="accounts" data-admin-subpage="detail">
                   <div class="panel-header">
                     <p class="panel-kicker">Profile</p>
                     <h3>Account details</h3>
@@ -164,7 +192,27 @@
                 <p class="panel-copy">This workspace keeps booking search, manual creation, refunds, and check-in tools together.</p>
               </div>
 
-              <section class="admin-bookings-shell">
+              <div class="admin-subpage-nav" data-admin-subpage-group="bookings">
+                <div class="auth-switcher admin-subpage-switcher" role="tablist" aria-label="Booking tools">
+                  <button class="tab-button active" type="button" data-admin-subpage-button="bookings" data-admin-subpage="schedule">Day board</button>
+                  <button class="tab-button" type="button" data-admin-subpage-button="bookings" data-admin-subpage="queue">Queue</button>
+                  <button class="tab-button" type="button" data-admin-subpage-button="bookings" data-admin-subpage="lookup">Lookup</button>
+                  <button class="tab-button" type="button" data-admin-subpage-button="bookings" data-admin-subpage="manual">Manual booking</button>
+                  <button class="tab-button" type="button" data-admin-subpage-button="bookings" data-admin-subpage="cleanup">Cleanup</button>
+                </div>
+                <label class="inline-field admin-subpage-picker">
+                  <span>View</span>
+                  <select data-admin-subpage-select="bookings">
+                    <option value="schedule">Day board</option>
+                    <option value="queue">Queue</option>
+                    <option value="lookup">Lookup</option>
+                    <option value="manual">Manual booking</option>
+                    <option value="cleanup">Cleanup</option>
+                  </select>
+                </label>
+              </div>
+
+              <section class="admin-bookings-shell admin-subpage-panel" data-admin-subpage-panel="bookings" data-admin-subpage="schedule">
                 <div class="admin-bookings-toolbar">
                   <label class="inline-field">
                     <span>Day view</span>
@@ -191,9 +239,18 @@
 
               <div id="admin-booking-quick-summary" class="admin-summary-grid admin-booking-summary-grid"></div>
 
-              <div class="admin-bookings-workbench">
-                <div class="admin-bookings-sidebar">
-                  <form id="admin-booking-lookup-form" class="stack-form hidden admin-subpanel">
+              <section class="admin-bookings-results-shell admin-subpage-panel hidden" data-admin-subpage-panel="bookings" data-admin-subpage="queue">
+                <div class="panel-header">
+                  <p class="panel-kicker">Records</p>
+                  <h3>Live booking queue</h3>
+                  <p id="admin-booking-results-copy" class="panel-copy">See who booked, who cancelled, room details, staff add-ons, and booking notes in one organized list.</p>
+                </div>
+                <div id="admin-booking-quick-filters" class="admin-booking-quick-filters"></div>
+                <div id="admin-booking-results" class="booking-list hidden admin-booking-results-board"></div>
+              </section>
+
+              <section class="admin-subpage-stack">
+                <form id="admin-booking-lookup-form" class="stack-form hidden admin-subpanel admin-subpage-panel" data-admin-subpage-panel="bookings" data-admin-subpage="lookup">
                     <div class="panel-header">
                       <p class="panel-kicker">Lookup</p>
                       <h3>Find a booking fast</h3>
@@ -222,9 +279,9 @@
                       <button class="ghost-button" type="submit">Search bookings</button>
                       <button id="admin-booking-clear" class="ghost-button" type="button">Clear search</button>
                     </div>
-                  </form>
+                </form>
 
-                  <form id="admin-manual-booking-form" class="stack-form hidden admin-subpanel">
+                <form id="admin-manual-booking-form" class="stack-form hidden admin-subpanel admin-subpage-panel" data-admin-subpage-panel="bookings" data-admin-subpage="manual">
                     <div class="panel-header">
                       <p class="panel-kicker">Manual</p>
                       <h3>Create a walk-in or staff booking</h3>
@@ -266,9 +323,9 @@
                       <textarea name="note" rows="3" placeholder="Walk-in details, setup notes, or access instructions"></textarea>
                     </label>
                     <button class="primary-button" type="submit">Create manual booking</button>
-                  </form>
+                </form>
 
-                  <section class="stack-form hidden admin-subpanel admin-bulk-danger">
+                <section class="stack-form hidden admin-subpanel admin-bulk-danger admin-subpage-panel" data-admin-subpage-panel="bookings" data-admin-subpage="cleanup">
                     <div class="panel-header">
                       <p class="panel-kicker">Bulk</p>
                       <h3>Danger zone</h3>
@@ -276,19 +333,8 @@
                     </div>
                     <button id="admin-clear-day-button" class="ghost-button room-action-danger" type="button">Clear bookings for selected day</button>
                     <button id="admin-clear-past-button" class="ghost-button room-action-danger" type="button">Clear past bookings</button>
-                  </section>
-                </div>
-
-                <section class="admin-bookings-results-shell">
-                  <div class="panel-header">
-                    <p class="panel-kicker">Records</p>
-                    <h3>Live booking queue</h3>
-                    <p id="admin-booking-results-copy" class="panel-copy">See who booked, who cancelled, room details, staff add-ons, and booking notes in one organized list.</p>
-                  </div>
-                  <div id="admin-booking-quick-filters" class="admin-booking-quick-filters"></div>
-                  <div id="admin-booking-results" class="booking-list hidden admin-booking-results-board"></div>
                 </section>
-              </div>
+              </section>
             </section>
 
             <section id="admin-panel-staff" class="admin-tab-panel hidden" data-admin-panel="staff">
@@ -298,8 +344,24 @@
                 <p class="panel-copy">Create staff profiles, price them, upload JPG photos, and control where they appear as bookable add-ons.</p>
               </div>
 
+              <div class="admin-subpage-nav" data-admin-subpage-group="staff">
+                <div class="auth-switcher admin-subpage-switcher" role="tablist" aria-label="Staff tools">
+                  <button class="tab-button active" type="button" data-admin-subpage-button="staff" data-admin-subpage="editor">Profile editor</button>
+                  <button class="tab-button" type="button" data-admin-subpage-button="staff" data-admin-subpage="catalog">Catalog</button>
+                  <button class="tab-button" type="button" data-admin-subpage-button="staff" data-admin-subpage="assignments">Assignments</button>
+                </div>
+                <label class="inline-field admin-subpage-picker">
+                  <span>View</span>
+                  <select data-admin-subpage-select="staff">
+                    <option value="editor">Profile editor</option>
+                    <option value="catalog">Catalog</option>
+                    <option value="assignments">Assignments</option>
+                  </select>
+                </label>
+              </div>
+
               <div class="admin-grid admin-grid-staff">
-                <form id="admin-staff-profile-form" class="stack-form hidden admin-subpanel">
+                <form id="admin-staff-profile-form" class="stack-form hidden admin-subpanel admin-subpage-panel" data-admin-subpage-panel="staff" data-admin-subpage="editor">
                   <h3>Staff profile</h3>
                   <input id="admin-staff-profile-id" type="hidden" name="staff_profile_id" />
                   <input id="admin-staff-photo-url" type="hidden" name="photo_url" />
@@ -348,14 +410,16 @@
                   <h3>Staff catalog</h3>
                   <p class="panel-copy">Create reusable staff profiles with pricing, skills, talents, and a JPG profile image.</p>
                 </div>
-                <div id="admin-staff-catalog-list" class="admin-staff-catalog-list"></div>
+                <div id="admin-staff-catalog-list" class="admin-staff-catalog-list admin-subpage-panel" data-admin-subpage-panel="staff" data-admin-subpage="catalog"></div>
 
-                <div class="panel-header">
-                  <p class="panel-kicker">Assignments</p>
-                  <h3>Room staff assignment</h3>
-                  <p class="panel-copy">Choose which staff profiles can be booked with each room.</p>
-                </div>
-                <div id="admin-room-staff-list" class="admin-room-staff-list"></div>
+                <section class="admin-subpage-panel hidden" data-admin-subpage-panel="staff" data-admin-subpage="assignments">
+                  <div class="panel-header">
+                    <p class="panel-kicker">Assignments</p>
+                    <h3>Room staff assignment</h3>
+                    <p class="panel-copy">Choose which staff profiles can be booked with each room.</p>
+                  </div>
+                  <div id="admin-room-staff-list" class="admin-room-staff-list"></div>
+                </section>
               </section>
             </section>
 
@@ -366,8 +430,22 @@
                 <p class="panel-copy">This workspace keeps room setup and room inventory together as a separate operations surface.</p>
               </div>
 
+              <div class="admin-subpage-nav" data-admin-subpage-group="rooms">
+                <div class="auth-switcher admin-subpage-switcher" role="tablist" aria-label="Room tools">
+                  <button class="tab-button active" type="button" data-admin-subpage-button="rooms" data-admin-subpage="editor">Room editor</button>
+                  <button class="tab-button" type="button" data-admin-subpage-button="rooms" data-admin-subpage="inventory">Inventory</button>
+                </div>
+                <label class="inline-field admin-subpage-picker">
+                  <span>View</span>
+                  <select data-admin-subpage-select="rooms">
+                    <option value="editor">Room editor</option>
+                    <option value="inventory">Inventory</option>
+                  </select>
+                </label>
+              </div>
+
               <div class="admin-grid admin-grid-rooms">
-                <form id="room-form" class="stack-form hidden admin-subpanel">
+                <form id="room-form" class="stack-form hidden admin-subpanel admin-subpage-panel" data-admin-subpage-panel="rooms" data-admin-subpage="editor">
                   <h3 id="room-form-title">Create room</h3>
                   <input id="room-form-id" type="hidden" name="room_id" />
                   <input id="room-photo-url" type="hidden" name="primary_photo_url" />
@@ -421,13 +499,15 @@
                 </form>
               </div>
 
-              <div id="rooms-toolbar" class="rooms-toolbar hidden">
-                <label class="checkbox-row rooms-filter">
-                  <input id="show-inactive-toggle" type="checkbox" />
-                  <span>Include inactive rooms</span>
-                </label>
-              </div>
-              <div id="rooms-grid" class="rooms-grid"></div>
+              <section class="admin-subpage-panel hidden" data-admin-subpage-panel="rooms" data-admin-subpage="inventory">
+                <div id="rooms-toolbar" class="rooms-toolbar hidden">
+                  <label class="checkbox-row rooms-filter">
+                    <input id="show-inactive-toggle" type="checkbox" />
+                    <span>Include inactive rooms</span>
+                  </label>
+                </div>
+                <div id="rooms-grid" class="rooms-grid"></div>
+              </section>
             </section>
           </div>
         </section>
@@ -452,6 +532,6 @@
       </section>
     </div>
 
-    <script type="module" src="/assets/js/main.js?v=20260408n"></script>
+    <script type="module" src="/assets/js/main.js?v=20260408q"></script>
   </body>
 </html>
